@@ -841,10 +841,22 @@
                 <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400 block font-bold uppercase">Team 2</span><span id="modal-p2-name" class="font-bold text-xs text-white block mt-1">Player 2</span></div>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Hari & Tanggal OOP</label><input type="date" id="modal-oop-date" onchange="updateModalDayPreview()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><span id="modal-oop-day-preview" class="block text-[10px] accent-text font-bold mt-0.5"></span></div>
-                <div><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Jam Main</label><input type="time" id="modal-oop-time" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"></div>
-                <div class="col-span-2 sm:col-span-1"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Lokasi Lapangan / GOR</label><select id="modal-oop-venue" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-sky-300 font-bold"></select></div>
-                <div><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Pilih Court</label><select id="modal-assign-court" onchange="onModalCourtSelectChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs accent-text font-bold"><option value="">-- Tidak di Court --</option></select></div>
+                <div><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Hari & Tanggal OOP</label><input type="date" id="modal-oop-date" onchange="updateModalDayPreview(); refreshModalTimeOptions();" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><span id="modal-oop-day-preview" class="block text-[10px] accent-text font-bold mt-0.5"></span></div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Jam Main (00-23 : 00-59)</label>
+                    <div class="flex items-center gap-1">
+                        <select id="modal-oop-hour" onchange="onModalTimeDropdownChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1.5 text-xs text-white font-mono font-bold text-center focus:outline-none focus:border-[#ccff00]"></select>
+                        <span class="text-slate-400 font-black text-xs">:</span>
+                        <select id="modal-oop-minute" onchange="onModalTimeDropdownChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1.5 text-xs text-white font-mono font-bold text-center focus:outline-none focus:border-[#ccff00]"></select>
+                    </div>
+                    <input type="hidden" id="modal-oop-time" value="">
+                </div>
+                <div class="col-span-2 sm:col-span-1"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Lokasi Lapangan / GOR</label><select id="modal-oop-venue" onchange="refreshModalTimeOptions()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-sky-300 font-bold"></select></div>
+                <div id="modal-time-conflict-box" class="hidden col-span-2 sm:col-span-3 bg-amber-500/15 border border-amber-500/40 text-amber-200 rounded-lg px-2.5 py-1.5 text-[11px] flex items-start gap-2">
+                    <i class="ph-bold ph-warning text-amber-400 text-sm shrink-0 mt-0.5"></i>
+                    <span id="modal-time-conflict-text"></span>
+                </div>
+                <div><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Pilih Court</label><select id="modal-assign-court" onchange="onModalCourtSelectChange(); refreshModalTimeOptions();" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs accent-text font-bold"><option value="">-- Tidak di Court --</option></select></div>
                 <div class="col-span-1 sm:col-span-2"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Status Antrean</label><select id="modal-court-mode" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-amber-300 font-bold"><option value="AUTO">Otomatis (Live / Pending)</option><option value="LIVE">LIVE (Main Sekarang)</option><option value="PENDING">PENDING (Siap-Siap / Next)</option></select></div>
             </div>
             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
@@ -2297,7 +2309,7 @@
                 const cBadge = getMatchCourtBadgeInfo(item.cls, item.rIdx, item.mIdx);
                 const vText = getMatchVenueLabel(m, cBadge);
                 const locLabel = cBadge ? `Court ${cBadge.court} • ${escapeHtml(vText)}` : escapeHtml(vText);
-                tbody.innerHTML += `<tr class="hover:bg-slate-800/40"><td class="p-3 font-semibold text-slate-200 whitespace-nowrap">${escapeHtml(formatIndoDayDate(m.oopDate))}</td><td class="p-3"><input type="time" value="${m.oopTime || ''}" onchange="inlineUpdateOOPTime('${escapeHtml(item.cls)}', ${item.rIdx}, ${item.mIdx}, this.value)" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs accent-text font-bold"></td><td class="p-3 text-[11px] text-sky-300 font-semibold">${locLabel}</td><td class="p-3 font-bold text-white">${escapeHtml(item.cls)}</td><td class="p-3 font-mono"><span class="accent-text font-bold">#${m.nr}</span> ${m.roundLabel}</td><td class="p-3 text-slate-200">${escapeHtml(item.t1Label)}</td><td class="p-3 text-slate-200">${escapeHtml(item.t2Label)}</td><td class="p-3 text-right"><button type="button" onclick="openScoreModal('${escapeHtml(item.cls)}', ${item.rIdx}, ${item.mIdx})" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-[11px] font-bold text-white">Atur / Court</button></td></tr>`;
+                tbody.innerHTML += `<tr class="hover:bg-slate-800/40"><td class="p-3 font-semibold text-slate-200 whitespace-nowrap">${escapeHtml(formatIndoDayDate(m.oopDate))}</td><td class="p-3">${buildInlineOOPTimeSelects(item.cls, item.rIdx, item.mIdx, m.oopTime || '')}</td><td class="p-3 text-[11px] text-sky-300 font-semibold">${locLabel}</td><td class="p-3 font-bold text-white">${escapeHtml(item.cls)}</td><td class="p-3 font-mono"><span class="accent-text font-bold">#${m.nr}</span> ${m.roundLabel}</td><td class="p-3 text-slate-200">${escapeHtml(item.t1Label)}</td><td class="p-3 text-slate-200">${escapeHtml(item.t2Label)}</td><td class="p-3 text-right"><button type="button" onclick="openScoreModal('${escapeHtml(item.cls)}', ${item.rIdx}, ${item.mIdx})" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-[11px] font-bold text-white">Atur / Court</button></td></tr>`;
             });
         }
 
@@ -2402,6 +2414,151 @@
             }
         }
 
+        function getUsedTimesOnSameDay(targetDate, targetVenue, excludeRef) {
+            const usedMap = {};
+            if (!targetDate) return usedMap;
+            classesList.forEach(cls => {
+                const b = knockoutBracketData[cls];
+                if (!b || !Array.isArray(b.rounds)) return;
+                b.rounds.forEach((r, rIdx) => {
+                    r.matches.forEach((m, mIdx) => {
+                        if (m.player1?.isBye || m.player2?.isBye) return;
+                        if (excludeRef && excludeRef.cls === cls && excludeRef.rIdx === rIdx && excludeRef.mIdx === mIdx) return;
+                        if (m.oopDate === targetDate && m.oopTime) {
+                            const mVenue = (m.oopVenue && m.oopVenue.trim()) ? m.oopVenue.trim() : getDefaultVenueName();
+                            if (!targetVenue || mVenue === targetVenue) {
+                                if (!usedMap[m.oopTime]) usedMap[m.oopTime] = [];
+                                const cBadge = getMatchCourtBadgeInfo(cls, rIdx, mIdx);
+                                usedMap[m.oopTime].push({
+                                    cls,
+                                    nr: m.nr,
+                                    court: cBadge ? `Court ${cBadge.court}` : 'Belum di Court',
+                                    p1: m.player1?.name || 'TBD',
+                                    p2: m.player2?.name || 'TBD'
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+            return usedMap;
+        }
+
+        function populateStaticTimeDropdowns(selectedHour, selectedMinute, usedMap) {
+            const hourSel = document.getElementById('modal-oop-hour');
+            const minSel = document.getElementById('modal-oop-minute');
+            if (!hourSel || !minSel) return;
+
+            let hourOpts = '';
+            for (let h = 0; h <= 23; h++) {
+                const hh = String(h).padStart(2, '0');
+                const usedInHour = Object.keys(usedMap).filter(t => t.startsWith(hh + ':')).length;
+                const badge = usedInHour > 0 ? ` (${usedInHour} terisi)` : '';
+                hourOpts += `<option value="${hh}" ${hh === selectedHour ? 'selected' : ''}>${hh}${badge}</option>`;
+            }
+            hourSel.innerHTML = hourOpts;
+
+            let minOpts = '';
+            for (let m = 0; m <= 59; m++) {
+                const mm = String(m).padStart(2, '0');
+                const fullTime = `${selectedHour}:${mm}`;
+                const conflicts = usedMap[fullTime];
+                const tag = conflicts && conflicts.length > 0
+                    ? ` ⚠️ (${conflicts[0].cls} #${conflicts[0].nr})`
+                    : '';
+                minOpts += `<option value="${mm}" ${mm === selectedMinute ? 'selected' : ''}>${mm}${tag}</option>`;
+            }
+            minSel.innerHTML = minOpts;
+        }
+
+        function refreshModalTimeOptions() {
+            const hourSel = document.getElementById('modal-oop-hour');
+            const minSel = document.getElementById('modal-oop-minute');
+            const dateVal = document.getElementById('modal-oop-date')?.value || '';
+            const venueVal = document.getElementById('modal-oop-venue')?.value || getDefaultVenueName();
+            if (!hourSel || !minSel) return;
+
+            const curH = hourSel.value || String(new Date().getHours()).padStart(2, '0');
+            const curM = minSel.value || String(new Date().getMinutes()).padStart(2, '0');
+            const usedMap = getUsedTimesOnSameDay(dateVal, venueVal, activeMatchRef);
+
+            populateStaticTimeDropdowns(curH, curM, usedMap);
+            validateModalTimeConflict(usedMap);
+        }
+
+        function onModalTimeDropdownChange() {
+            refreshModalTimeOptions();
+        }
+
+        function validateModalTimeConflict(precomputedUsedMap = null) {
+            const hourSel = document.getElementById('modal-oop-hour');
+            const minSel = document.getElementById('modal-oop-minute');
+            const hiddenTime = document.getElementById('modal-oop-time');
+            const conflictBox = document.getElementById('modal-time-conflict-box');
+            const conflictText = document.getElementById('modal-time-conflict-text');
+            if (!hourSel || !minSel || !hiddenTime) return [];
+
+            const fullTime = `${hourSel.value}:${minSel.value}`;
+            hiddenTime.value = fullTime;
+
+            const dateVal = document.getElementById('modal-oop-date')?.value || '';
+            const venueVal = document.getElementById('modal-oop-venue')?.value || getDefaultVenueName();
+            const usedMap = precomputedUsedMap || getUsedTimesOnSameDay(dateVal, venueVal, activeMatchRef);
+            const conflicts = usedMap[fullTime] || [];
+
+            if (conflictBox && conflictText) {
+                if (conflicts.length > 0) {
+                    const detailList = conflicts.map(c => `<strong>${escapeHtml(c.cls)} #${c.nr}</strong> (${escapeHtml(c.court)})`).join(', ');
+                    conflictText.innerHTML = `<strong>Jam Bentrok (${fullTime}):</strong> Sudah dipakai oleh ${detailList} pada tanggal & GOR yang sama.`;
+                    conflictBox.classList.remove('hidden');
+                } else {
+                    conflictBox.classList.add('hidden');
+                }
+            }
+            return conflicts;
+        }
+
+        function buildInlineOOPTimeSelects(cls, rIdx, mIdx, currentTime) {
+            const [curH, curM] = (currentTime && /^\d{2}:\d{2}$/.test(currentTime))
+                ? currentTime.split(':')
+                : ['', ''];
+            let hOpts = `<option value="">--</option>`;
+            for (let h = 0; h <= 23; h++) {
+                const hh = String(h).padStart(2, '0');
+                hOpts += `<option value="${hh}" ${hh === curH ? 'selected' : ''}>${hh}</option>`;
+            }
+            let mOpts = `<option value="">--</option>`;
+            for (let m = 0; m <= 59; m++) {
+                const mm = String(m).padStart(2, '0');
+                mOpts += `<option value="${mm}" ${mm === curM ? 'selected' : ''}>${mm}</option>`;
+            }
+            const safeCls = escapeHtml(cls);
+            return `<div class="inline-flex items-center gap-1 bg-slate-950 border border-slate-700 rounded px-1.5 py-1">
+                <select id="oop-h-${safeCls}-${rIdx}-${mIdx}" onchange="syncInlineOOPTime('${safeCls}', ${rIdx}, ${mIdx})" class="bg-transparent text-xs accent-text font-mono font-bold focus:outline-none">${hOpts}</select>
+                <span class="text-slate-500 font-bold">:</span>
+                <select id="oop-m-${safeCls}-${rIdx}-${mIdx}" onchange="syncInlineOOPTime('${safeCls}', ${rIdx}, ${mIdx})" class="bg-transparent text-xs accent-text font-mono font-bold focus:outline-none">${mOpts}</select>
+            </div>`;
+        }
+
+        function syncInlineOOPTime(cls, rIdx, mIdx) {
+            const hEl = document.getElementById(`oop-h-${cls}-${rIdx}-${mIdx}`);
+            const mEl = document.getElementById(`oop-m-${cls}-${rIdx}-${mIdx}`);
+            if (!hEl || !mEl) return;
+            const now = new Date();
+            const hh = hEl.value || String(now.getHours()).padStart(2, '0');
+            const mm = mEl.value || String(now.getMinutes()).padStart(2, '0');
+            hEl.value = hh;
+            mEl.value = mm;
+            const newTime = `${hh}:${mm}`;
+            const targetMatch = knockoutBracketData[cls].rounds[rIdx].matches[mIdx];
+            const usedMap = getUsedTimesOnSameDay(targetMatch.oopDate, targetMatch.oopVenue || getDefaultVenueName(), { cls, rIdx, mIdx });
+            if (usedMap[newTime] && usedMap[newTime].length > 0) {
+                const c = usedMap[newTime][0];
+                alert(`Perhatian: Jam ${newTime} pada tanggal & GOR ini sudah dipakai oleh ${c.cls} #${c.nr} (${c.court}).`);
+            }
+            inlineUpdateOOPTime(cls, rIdx, mIdx, newTime);
+        }
+
         function openScoreModal(cls, rIdx, mIdx) {
             const match = knockoutBracketData[cls].rounds[rIdx].matches[mIdx];
             if (match.player1?.isBye || match.player2?.isBye) return;
@@ -2411,7 +2568,17 @@
             document.getElementById('modal-p2-name').innerText = match.player2 ? `${match.player2.name} (${match.player2.club || '-'})` : 'TBD';
             document.getElementById('modal-oop-date').value = match.oopDate || new Date().toISOString().split('T')[0];
             updateModalDayPreview();
-            document.getElementById('modal-oop-time').value = match.oopTime || '';
+            const now = new Date();
+            let initHH = String(now.getHours()).padStart(2, '0');
+            let initMM = String(now.getMinutes()).padStart(2, '0');
+            if (match.oopTime && /^\d{2}:\d{2}$/.test(match.oopTime)) {
+                [initHH, initMM] = match.oopTime.split(':');
+            }
+            const initDate = document.getElementById('modal-oop-date').value;
+            const initVenue = (match.oopVenue && String(match.oopVenue).trim()) ? String(match.oopVenue).trim() : getVenueList()[0];
+            const usedMap = getUsedTimesOnSameDay(initDate, initVenue, activeMatchRef);
+            populateStaticTimeDropdowns(initHH, initMM, usedMap);
+            validateModalTimeConflict(usedMap);
 
             document.getElementById('modal-umpire').value = match.umpire || '';
             const lm = Array.isArray(match.linesmen) ? match.linesmen : ['', '', '', ''];
@@ -2459,6 +2626,12 @@
 
         function saveMatchScheduleAndCourt() {
             if (!activeMatchRef) return;
+            const conflicts = validateModalTimeConflict();
+            if (conflicts.length > 0) {
+                const info = conflicts.map(c => `${c.cls} #${c.nr} (${c.court})`).join(', ');
+                const proceed = confirm(`PERINGATAN JADWAL BENTROK!\n\nJam ${document.getElementById('modal-oop-time').value} sudah digunakan oleh: ${info}.\n\nTetap simpan jadwal dengan jam yang sama?`);
+                if (!proceed) return;
+            }
             const { cls, rIdx, mIdx } = activeMatchRef;
             const match = knockoutBracketData[cls].rounds[rIdx].matches[mIdx];
             match.oopDate = document.getElementById('modal-oop-date').value;
