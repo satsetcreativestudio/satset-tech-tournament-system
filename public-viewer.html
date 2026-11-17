@@ -454,6 +454,16 @@
         </div>
     </section>
 
+    <!-- TV GOR STICKY BOTTOM SPONSOR BAR (MUNCUL OTOMATIS SAAT MODE TV GOR AKTIF) -->
+    <div id="tvSponsorBar" class="hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 px-6 py-2.5 shadow-2xl">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <span class="text-[10px] font-black uppercase tracking-widest accent-text shrink-0 flex items-center gap-1.5">
+                <i class="ph-bold ph-handshake"></i> Official Partners
+            </span>
+            <div id="tvSponsorBarGrid" class="flex-1 flex flex-wrap items-center justify-center gap-4 sm:gap-6 overflow-hidden"></div>
+        </div>
+    </div>
+
     <!-- FOOTER -->
     <footer id="pubFooterBox" class="border-t border-slate-800/80 bg-slate-900/60 py-5 px-6 text-center text-[11px] text-slate-400 space-y-1.5">
         <div id="pubFooterBrandLine">
@@ -588,14 +598,32 @@
                 if (classes && parts) {
                     tournamentData.classes = classes;
                     tournamentData.participants = parts;
+                    tournamentData.brackets = brackets || {};
+                    const venueList = Array.isArray(meta?.venueList) && meta.venueList.length > 0 ? meta.venueList : [meta?.venueLocation || 'GOR PLATINUM ARENA MALANG'];
                     const courts = [];
                     for (let c = 1; c <= cCount; c++) {
-                        const a = assigns[c];
-                        const m = a ? brackets?.[a.cls]?.rounds?.[a.rIdx]?.matches?.[a.mIdx] : null;
+                        const rawSlot = assigns[c];
+                        const activeRef = (rawSlot && typeof rawSlot === 'object' && 'active' in rawSlot) ? rawSlot.active : rawSlot;
+                        const pendingRef = (rawSlot && typeof rawSlot === 'object' && rawSlot.pending) ? rawSlot.pending : null;
+                        const venueName = (meta?.courtVenues && meta.courtVenues[c]) || venueList[0] || '';
+                        const m = activeRef ? brackets?.[activeRef.cls]?.rounds?.[activeRef.rIdx]?.matches?.[activeRef.mIdx] : null;
+                        const pm = pendingRef ? brackets?.[pendingRef.cls]?.rounds?.[pendingRef.rIdx]?.matches?.[pendingRef.mIdx] : null;
+                        let pendingInfo = null;
+                        if (pm && pm.player1 && pm.player2) {
+                            pendingInfo = {
+                                className: pendingRef.cls,
+                                matchNr: '#' + pm.nr,
+                                roundLabel: pm.roundLabel || '',
+                                team1: pm.player1.name + (pm.player1.club ? ' (' + pm.player1.club + ')' : ''),
+                                team2: pm.player2.name + (pm.player2.club ? ' (' + pm.player2.club + ')' : ''),
+                                oopTime: pm.oopTime || ''
+                            };
+                        }
                         if (m && m.player1 && m.player2) {
-                            courts.push({ court: c, status: 'LIVE', className: a.cls, matchNr: '#' + m.nr, team1: m.player1.name, team2: m.player2.name, score: m.s1_p1 + '-' + m.s1_p2 + ' / ' + m.s2_p1 + '-' + m.s2_p2 });
+                            const s3 = (m.s3_p1 || m.s3_p2) ? ' / ' + m.s3_p1 + '-' + m.s3_p2 : '';
+                            courts.push({ court: c, status: 'LIVE', className: activeRef.cls, matchNr: '#' + m.nr, team1: m.player1.name, team2: m.player2.name, score: m.s1_p1 + '-' + m.s1_p2 + ' / ' + m.s2_p1 + '-' + m.s2_p2 + s3, venue: venueName, pending: pendingInfo });
                         } else {
-                            courts.push({ court: c, status: 'STANDBY' });
+                            courts.push({ court: c, status: 'STANDBY', venue: venueName, pending: pendingInfo });
                         }
                     }
                     tournamentData.courts = courts;
@@ -1248,6 +1276,19 @@
             }
         }
 
+        function syncTVSponsorBarVisibility() {
+            const tvBar = document.getElementById('tvSponsorBar');
+            const sponsors = Array.isArray(tournamentData.sponsorsList) ? tournamentData.sponsorsList.filter(s => s && s.logoData) : [];
+            if (!tvBar) return;
+            if (isTVMode && sponsors.length > 0) {
+                tvBar.classList.remove('hidden');
+                document.body.classList.add('pb-20');
+            } else {
+                tvBar.classList.add('hidden');
+                document.body.classList.remove('pb-20');
+            }
+        }
+
         function toggleTVMode() {
             isTVMode = !isTVMode;
             const nav = document.getElementById('publicNavBar');
@@ -1256,12 +1297,14 @@
                 switchPublicTab('courts');
                 nav.classList.add('hidden');
                 btn.classList.add('border-[#ccff00]', 'bg-[#ccff00]/10');
+                syncTVSponsorBarVisibility();
                 if (document.documentElement.requestFullscreen) {
                     document.documentElement.requestFullscreen().catch(() => {});
                 }
             } else {
                 nav.classList.remove('hidden');
                 btn.classList.remove('border-[#ccff00]', 'bg-[#ccff00]/10');
+                syncTVSponsorBarVisibility();
                 if (document.fullscreenElement && document.exitFullscreen) {
                     document.exitFullscreen().catch(() => {});
                 }
@@ -1387,10 +1430,11 @@
                 switchPublicTab(firstVis);
             }
 
-            // Sponsors Section
+            // Sponsors Section (Normal View + TV GOR Sticky Bar)
             const spSec = document.getElementById('pubSponsorsSection');
             const spGrid = document.getElementById('pubSponsorsGrid');
-            const sponsors = Array.isArray(tournamentData.sponsorsList) ? tournamentData.sponsorsList : [];
+            const tvBarGrid = document.getElementById('tvSponsorBarGrid');
+            const sponsors = Array.isArray(tournamentData.sponsorsList) ? tournamentData.sponsorsList.filter(s => s && s.logoData) : [];
             if (spSec && spGrid) {
                 if (sponsors.length === 0) {
                     spSec.classList.add('hidden');
@@ -1404,6 +1448,15 @@
                     `).join('');
                 }
             }
+            if (tvBarGrid) {
+                tvBarGrid.innerHTML = sponsors.map(sp => `
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-2 shrink-0">
+                        <img src="${sp.logoData}" alt="${escapeHtml(sp.name || 'Sponsor')}" class="h-8 w-auto max-w-[120px] object-contain">
+                        ${sp.tier ? `<span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">${escapeHtml(sp.tier)}</span>` : ''}
+                    </div>
+                `).join('');
+            }
+            syncTVSponsorBarVisibility();
 
             // Agency Footer
             const ag = tournamentData.agencyConfig || {};
