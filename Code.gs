@@ -8,6 +8,7 @@ const LIVE_SHEET = '_LIVE_COURTS';
 const REG_SHEET = '_PENDAFTARAN';
 const RESULTS_SHEET = '_HASIL_PERTANDINGAN';
 const BRACKET_SHEET = '_BAGAN_JSON';
+const SPONSORS_SHEET = '_SPONSORS';
 
 const DEFAULT_USER = 'admin';
 const DEFAULT_PASS = 'admin2026';
@@ -176,6 +177,7 @@ function doGet(e) {
     waPromoTemplate: meta.waPromoTemplate,
     handbookUrl: meta.handbookUrl,
     agencyConfig: meta.agencyConfig,
+    regFieldsConfig: meta.regFieldsConfig,
     classes: classes,
     participants: participants,
     courts: courts,
@@ -258,6 +260,7 @@ function doPost(e) {
         waPromoTemplate: payload.waPromoTemplate !== undefined ? payload.waPromoTemplate : undefined,
         handbookUrl: payload.handbookUrl !== undefined ? payload.handbookUrl : undefined,
         agencyConfig: payload.agencyConfig !== undefined ? payload.agencyConfig : undefined,
+        regFieldsConfig: payload.regFieldsConfig !== undefined ? payload.regFieldsConfig : undefined,
         activeClasses: Array.isArray(payload.activeClasses) ? payload.activeClasses : null
       });
 
@@ -407,7 +410,8 @@ function getConfigMeta(ss) {
     announcementText: '',
     waPromoTemplate: '',
     handbookUrl: '',
-    agencyConfig: null
+    agencyConfig: null,
+    regFieldsConfig: null
   };
   if (sheet && sheet.getLastRow() > 1) {
     const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
@@ -431,6 +435,7 @@ function getConfigMeta(ss) {
       if (r[0] === 'waPromoTemplate') meta.waPromoTemplate = String(r[1] || '');
       if (r[0] === 'handbookUrl') meta.handbookUrl = String(r[1] || '');
       if (r[0] === 'agencyConfig' && r[1]) { try { meta.agencyConfig = JSON.parse(r[1]); } catch (e) {} }
+      if (r[0] === 'regFieldsConfig' && r[1]) { try { meta.regFieldsConfig = JSON.parse(r[1]); } catch (e) {} }
       if (r[0] === 'courtVenues' && r[1]) {
         try { meta.courtVenues = JSON.parse(r[1]); } catch (e) {}
       }
@@ -438,6 +443,21 @@ function getConfigMeta(ss) {
         try { meta.activeClasses = JSON.parse(r[1]); } catch (e) {}
       }
     });
+  }
+  const spSheet = ss.getSheetByName(SPONSORS_SHEET);
+  if (spSheet && spSheet.getLastRow() > 1) {
+    const spRows = spSheet.getRange(2, 1, spSheet.getLastRow() - 1, 4).getValues();
+    const loadedSponsors = [];
+    spRows.forEach(sr => {
+      if (sr[3]) {
+        loadedSponsors.push({
+          name: String(sr[1] || ''),
+          tier: String(sr[2] || ''),
+          logoData: String(sr[3] || '')
+        });
+      }
+    });
+    meta.sponsorsList = loadedSponsors;
   }
   return meta;
 }
@@ -471,12 +491,28 @@ function setConfigMeta(ss, meta) {
     brandingJson = JSON.stringify(trimmedBranding);
   }
   sheet.appendRow(['brandingConfig', brandingJson]);
-  sheet.appendRow(['sponsorsList', JSON.stringify(meta.sponsorsList !== undefined ? meta.sponsorsList : (existing.sponsorsList || []))]);
+  const sponsorsToSave = meta.sponsorsList !== undefined ? meta.sponsorsList : (existing.sponsorsList || []);
+  let spSheet = ss.getSheetByName(SPONSORS_SHEET);
+  if (!spSheet) spSheet = ss.insertSheet(SPONSORS_SHEET);
+  spSheet.clear();
+  spSheet.appendRow(['No', 'Nama Sponsor', 'Kategori / Tier', 'Logo Data']);
+  spSheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#0b0f17').setFontColor('#ccff00');
+  if (Array.isArray(sponsorsToSave) && sponsorsToSave.length > 0) {
+    const spRows = sponsorsToSave.map((sp, i) => [
+      i + 1,
+      String(sp.name || ''),
+      String(sp.tier || ''),
+      String(sp.logoData || '')
+    ]);
+    spSheet.getRange(2, 1, spRows.length, 4).setValues(spRows);
+  }
+  sheet.appendRow(['sponsorsList', 'STORED_IN_' + SPONSORS_SHEET]);
   sheet.appendRow(['publicTabsConfig', JSON.stringify(meta.publicTabsConfig !== undefined ? meta.publicTabsConfig : (existing.publicTabsConfig || null))]);
   sheet.appendRow(['announcementText', meta.announcementText !== undefined ? meta.announcementText : (existing.announcementText || '')]);
   sheet.appendRow(['waPromoTemplate', meta.waPromoTemplate !== undefined ? meta.waPromoTemplate : (existing.waPromoTemplate || '')]);
   sheet.appendRow(['handbookUrl', meta.handbookUrl !== undefined ? meta.handbookUrl : (existing.handbookUrl || '')]);
   sheet.appendRow(['agencyConfig', JSON.stringify(meta.agencyConfig !== undefined ? meta.agencyConfig : (existing.agencyConfig || null))]);
+  sheet.appendRow(['regFieldsConfig', JSON.stringify(meta.regFieldsConfig !== undefined ? meta.regFieldsConfig : (existing.regFieldsConfig || null))]);
   sheet.appendRow(['activeClasses', JSON.stringify(classesToSave || [])]);
 }
 
