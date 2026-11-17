@@ -2284,7 +2284,297 @@
                         <thead><tr><th>No Partai</th><th>Babak</th><th>Team 1</th><th>Klub 1</th><th>Team 2</th><th>Klub 2</th><th>Jadwal</th><th>Lokasi</th><th>Skor</th><th>Pemenang</th></tr></thead>
                         <tbody>${rowsHtml}</tbody>
                     </table>
-                </body></html>`;
+                
+    <!-- SATSET COMPACT DROPDOWN (MAX-HEIGHT 185PX, ANTI-OVERFLOW) -->
+    <style>
+        .st-dd {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            min-width: 0;
+            user-select: none;
+        }
+        .st-dd.st-dd-block {
+            display: flex;
+            width: 100%;
+        }
+        .st-dd-btn {
+            width: 100%;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            cursor: pointer;
+            text-align: left;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .st-dd.st-dd-center .st-dd-btn {
+            justify-content: center;
+        }
+        .st-dd.open .st-dd-btn {
+            border-color: var(--theme-accent, #ccff00) !important;
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-accent, #ccff00) 20%, transparent);
+        }
+        .st-dd-label {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .st-dd-arrow {
+            flex-shrink: 0;
+            font-size: 10px;
+            color: var(--theme-accent, #ccff00);
+            transition: transform 0.15s ease;
+        }
+        .st-dd.open .st-dd-arrow {
+            transform: rotate(180deg);
+        }
+        .st-dd-menu {
+            position: fixed;
+            z-index: 10050;
+            max-height: 185px;
+            overflow-y: auto;
+            background: #0b0f17;
+            border: 1px solid var(--theme-accent, #ccff00);
+            border-radius: 10px;
+            box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(15, 23, 42, 0.9);
+            padding: 4px;
+            display: none;
+        }
+        .st-dd-menu.open {
+            display: block;
+        }
+        .st-dd-menu::-webkit-scrollbar {
+            width: 5px;
+        }
+        .st-dd-menu::-webkit-scrollbar-track {
+            background: #0b0f17;
+        }
+        .st-dd-menu::-webkit-scrollbar-thumb {
+            background: var(--theme-accent, #ccff00);
+            border-radius: 4px;
+        }
+        .st-dd-item {
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1.35;
+            color: #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background-color 0.1s ease, color 0.1s ease;
+        }
+        .st-dd-item.st-dd-item-center {
+            text-align: center;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-weight: 700;
+        }
+        .st-dd-item:hover {
+            background: var(--theme-hover, #1e293b);
+            color: #ffffff;
+        }
+        .st-dd-item.active {
+            background: var(--theme-accent, #ccff00);
+            color: var(--theme-accent-fg, #0b0f17);
+            font-weight: 800;
+        }
+    </style>
+    <script>
+        (function initSatsetCompactDropdowns() {
+            let activePortalMenu = null;
+            let activeWrap = null;
+
+            function closeActiveMenu() {
+                if (activePortalMenu) {
+                    activePortalMenu.classList.remove('open');
+                    if (activePortalMenu.parentNode === document.body) {
+                        document.body.removeChild(activePortalMenu);
+                    }
+                    activePortalMenu = null;
+                }
+                if (activeWrap) {
+                    activeWrap.classList.remove('open');
+                    activeWrap = null;
+                }
+            }
+
+            function positionPortalMenu(btn, menu) {
+                const rect = btn.getBoundingClientRect();
+                const margin = 8;
+                const maxH = 185;
+                const minW = Math.max(rect.width, 76);
+
+                menu.style.minWidth = minW + 'px';
+                menu.style.maxWidth = Math.min(340, window.innerWidth - margin * 2) + 'px';
+
+                const spaceBelow = window.innerHeight - rect.bottom - margin;
+                const spaceAbove = rect.top - margin;
+
+                let left = rect.left;
+                if (left + minW > window.innerWidth - margin) {
+                    left = Math.max(margin, window.innerWidth - minW - margin);
+                }
+                menu.style.left = left + 'px';
+
+                if (spaceBelow >= 120 || spaceBelow >= spaceAbove) {
+                    menu.style.top = (rect.bottom + 4) + 'px';
+                    menu.style.bottom = 'auto';
+                    menu.style.maxHeight = Math.max(96, Math.min(maxH, spaceBelow)) + 'px';
+                } else {
+                    menu.style.top = 'auto';
+                    menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                    menu.style.maxHeight = Math.max(96, Math.min(maxH, spaceAbove)) + 'px';
+                }
+            }
+
+            function syncLabel(sel, labelEl) {
+                const opt = sel.options[sel.selectedIndex];
+                labelEl.textContent = opt ? opt.text : '';
+                labelEl.title = opt ? opt.text : '';
+            }
+
+            function enhanceSelect(sel) {
+                if (!sel || sel.nodeType !== 1 || sel.tagName !== 'SELECT') return;
+                if (sel.dataset.stEnhanced === '1') {
+                    if (sel._stSyncLabel) sel._stSyncLabel();
+                    return;
+                }
+                sel.dataset.stEnhanced = '1';
+
+                const origClass = sel.className || '';
+                const isFullWidth = /w-full/.test(origClass);
+                const isCentered = /text-center/.test(origClass);
+
+                sel.style.display = 'none';
+
+                const wrap = document.createElement('div');
+                wrap.className = 'st-dd' + (isFullWidth ? ' st-dd-block' : '') + (isCentered ? ' st-dd-center' : '');
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'st-dd-btn ' + origClass.replace(/w-full/g, '').trim();
+                if (sel.title) btn.title = sel.title;
+                if (sel.disabled) btn.disabled = true;
+
+                const labelEl = document.createElement('span');
+                labelEl.className = 'st-dd-label';
+
+                const arrowEl = document.createElement('i');
+                arrowEl.className = 'ph-bold ph-caret-down st-dd-arrow';
+
+                btn.appendChild(labelEl);
+                btn.appendChild(arrowEl);
+                wrap.appendChild(btn);
+
+                sel.parentNode.insertBefore(wrap, sel.nextSibling);
+
+                const doSync = () => syncLabel(sel, labelEl);
+                sel._stSyncLabel = doSync;
+                doSync();
+
+                const obs = new MutationObserver(() => doSync());
+                obs.observe(sel, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
+
+                sel.addEventListener('change', doSync);
+
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (sel.disabled) return;
+
+                    const wasOpen = (activeWrap === wrap);
+                    closeActiveMenu();
+                    if (wasOpen) return;
+
+                    const menu = document.createElement('div');
+                    menu.className = 'st-dd-menu open';
+
+                    Array.from(sel.options).forEach((opt, idx) => {
+                        const item = document.createElement('div');
+                        item.className = 'st-dd-item'
+                            + (isCentered ? ' st-dd-item-center' : '')
+                            + (idx === sel.selectedIndex ? ' active' : '');
+                        item.textContent = opt.text;
+                        item.title = opt.text;
+                        if (opt.disabled) {
+                            item.style.opacity = '0.45';
+                            item.style.pointerEvents = 'none';
+                        }
+                        item.addEventListener('click', (ev) => {
+                            ev.stopPropagation();
+                            const changed = (sel.selectedIndex !== idx);
+                            sel.selectedIndex = idx;
+                            doSync();
+                            closeActiveMenu();
+                            if (changed) {
+                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        });
+                        menu.appendChild(item);
+                    });
+
+                    document.body.appendChild(menu);
+                    positionPortalMenu(btn, menu);
+                    activePortalMenu = menu;
+                    activeWrap = wrap;
+                    wrap.classList.add('open');
+
+                    const activeItem = menu.querySelector('.st-dd-item.active');
+                    if (activeItem) {
+                        activeItem.scrollIntoView({ block: 'nearest' });
+                    }
+                });
+            }
+
+            function enhanceAllSelects(root = document) {
+                if (!root || !root.querySelectorAll) return;
+                root.querySelectorAll('select').forEach(enhanceSelect);
+            }
+
+            window.enhanceAllSatsetSelects = enhanceAllSelects;
+
+            document.addEventListener('click', (e) => {
+                if (activePortalMenu && !activePortalMenu.contains(e.target)) {
+                    closeActiveMenu();
+                }
+            });
+
+            window.addEventListener('resize', closeActiveMenu);
+            document.addEventListener('scroll', (e) => {
+                if (activePortalMenu && e.target !== activePortalMenu) {
+                    closeActiveMenu();
+                }
+            }, true);
+
+            const domObs = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    for (const node of m.addedNodes) {
+                        if (node.nodeType === 1) {
+                            if (node.tagName === 'SELECT') enhanceSelect(node);
+                            else if (node.querySelectorAll) enhanceAllSelects(node);
+                        }
+                    }
+                }
+            });
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    enhanceAllSelects();
+                    domObs.observe(document.body, { childList: true, subtree: true });
+                });
+            } else {
+                enhanceAllSelects();
+                domObs.observe(document.body, { childList: true, subtree: true });
+            }
+        })();
+    </script>
+
+</body></html>`;
             const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -4169,6 +4459,296 @@
             window.addEventListener('scroll', () => {
                 if (activeEl) positionTooltip(activeEl);
             }, { passive: true });
+        })();
+    </script>
+
+
+    <!-- SATSET COMPACT DROPDOWN (MAX-HEIGHT 185PX, ANTI-OVERFLOW) -->
+    <style>
+        .st-dd {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            min-width: 0;
+            user-select: none;
+        }
+        .st-dd.st-dd-block {
+            display: flex;
+            width: 100%;
+        }
+        .st-dd-btn {
+            width: 100%;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            cursor: pointer;
+            text-align: left;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .st-dd.st-dd-center .st-dd-btn {
+            justify-content: center;
+        }
+        .st-dd.open .st-dd-btn {
+            border-color: var(--theme-accent, #ccff00) !important;
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-accent, #ccff00) 20%, transparent);
+        }
+        .st-dd-label {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .st-dd-arrow {
+            flex-shrink: 0;
+            font-size: 10px;
+            color: var(--theme-accent, #ccff00);
+            transition: transform 0.15s ease;
+        }
+        .st-dd.open .st-dd-arrow {
+            transform: rotate(180deg);
+        }
+        .st-dd-menu {
+            position: fixed;
+            z-index: 10050;
+            max-height: 185px;
+            overflow-y: auto;
+            background: #0b0f17;
+            border: 1px solid var(--theme-accent, #ccff00);
+            border-radius: 10px;
+            box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(15, 23, 42, 0.9);
+            padding: 4px;
+            display: none;
+        }
+        .st-dd-menu.open {
+            display: block;
+        }
+        .st-dd-menu::-webkit-scrollbar {
+            width: 5px;
+        }
+        .st-dd-menu::-webkit-scrollbar-track {
+            background: #0b0f17;
+        }
+        .st-dd-menu::-webkit-scrollbar-thumb {
+            background: var(--theme-accent, #ccff00);
+            border-radius: 4px;
+        }
+        .st-dd-item {
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1.35;
+            color: #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background-color 0.1s ease, color 0.1s ease;
+        }
+        .st-dd-item.st-dd-item-center {
+            text-align: center;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-weight: 700;
+        }
+        .st-dd-item:hover {
+            background: var(--theme-hover, #1e293b);
+            color: #ffffff;
+        }
+        .st-dd-item.active {
+            background: var(--theme-accent, #ccff00);
+            color: var(--theme-accent-fg, #0b0f17);
+            font-weight: 800;
+        }
+    </style>
+    <script>
+        (function initSatsetCompactDropdowns() {
+            let activePortalMenu = null;
+            let activeWrap = null;
+
+            function closeActiveMenu() {
+                if (activePortalMenu) {
+                    activePortalMenu.classList.remove('open');
+                    if (activePortalMenu.parentNode === document.body) {
+                        document.body.removeChild(activePortalMenu);
+                    }
+                    activePortalMenu = null;
+                }
+                if (activeWrap) {
+                    activeWrap.classList.remove('open');
+                    activeWrap = null;
+                }
+            }
+
+            function positionPortalMenu(btn, menu) {
+                const rect = btn.getBoundingClientRect();
+                const margin = 8;
+                const maxH = 185;
+                const minW = Math.max(rect.width, 76);
+
+                menu.style.minWidth = minW + 'px';
+                menu.style.maxWidth = Math.min(340, window.innerWidth - margin * 2) + 'px';
+
+                const spaceBelow = window.innerHeight - rect.bottom - margin;
+                const spaceAbove = rect.top - margin;
+
+                let left = rect.left;
+                if (left + minW > window.innerWidth - margin) {
+                    left = Math.max(margin, window.innerWidth - minW - margin);
+                }
+                menu.style.left = left + 'px';
+
+                if (spaceBelow >= 120 || spaceBelow >= spaceAbove) {
+                    menu.style.top = (rect.bottom + 4) + 'px';
+                    menu.style.bottom = 'auto';
+                    menu.style.maxHeight = Math.max(96, Math.min(maxH, spaceBelow)) + 'px';
+                } else {
+                    menu.style.top = 'auto';
+                    menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                    menu.style.maxHeight = Math.max(96, Math.min(maxH, spaceAbove)) + 'px';
+                }
+            }
+
+            function syncLabel(sel, labelEl) {
+                const opt = sel.options[sel.selectedIndex];
+                labelEl.textContent = opt ? opt.text : '';
+                labelEl.title = opt ? opt.text : '';
+            }
+
+            function enhanceSelect(sel) {
+                if (!sel || sel.nodeType !== 1 || sel.tagName !== 'SELECT') return;
+                if (sel.dataset.stEnhanced === '1') {
+                    if (sel._stSyncLabel) sel._stSyncLabel();
+                    return;
+                }
+                sel.dataset.stEnhanced = '1';
+
+                const origClass = sel.className || '';
+                const isFullWidth = /w-full/.test(origClass);
+                const isCentered = /text-center/.test(origClass);
+
+                sel.style.display = 'none';
+
+                const wrap = document.createElement('div');
+                wrap.className = 'st-dd' + (isFullWidth ? ' st-dd-block' : '') + (isCentered ? ' st-dd-center' : '');
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'st-dd-btn ' + origClass.replace(/w-full/g, '').trim();
+                if (sel.title) btn.title = sel.title;
+                if (sel.disabled) btn.disabled = true;
+
+                const labelEl = document.createElement('span');
+                labelEl.className = 'st-dd-label';
+
+                const arrowEl = document.createElement('i');
+                arrowEl.className = 'ph-bold ph-caret-down st-dd-arrow';
+
+                btn.appendChild(labelEl);
+                btn.appendChild(arrowEl);
+                wrap.appendChild(btn);
+
+                sel.parentNode.insertBefore(wrap, sel.nextSibling);
+
+                const doSync = () => syncLabel(sel, labelEl);
+                sel._stSyncLabel = doSync;
+                doSync();
+
+                const obs = new MutationObserver(() => doSync());
+                obs.observe(sel, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
+
+                sel.addEventListener('change', doSync);
+
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (sel.disabled) return;
+
+                    const wasOpen = (activeWrap === wrap);
+                    closeActiveMenu();
+                    if (wasOpen) return;
+
+                    const menu = document.createElement('div');
+                    menu.className = 'st-dd-menu open';
+
+                    Array.from(sel.options).forEach((opt, idx) => {
+                        const item = document.createElement('div');
+                        item.className = 'st-dd-item'
+                            + (isCentered ? ' st-dd-item-center' : '')
+                            + (idx === sel.selectedIndex ? ' active' : '');
+                        item.textContent = opt.text;
+                        item.title = opt.text;
+                        if (opt.disabled) {
+                            item.style.opacity = '0.45';
+                            item.style.pointerEvents = 'none';
+                        }
+                        item.addEventListener('click', (ev) => {
+                            ev.stopPropagation();
+                            const changed = (sel.selectedIndex !== idx);
+                            sel.selectedIndex = idx;
+                            doSync();
+                            closeActiveMenu();
+                            if (changed) {
+                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        });
+                        menu.appendChild(item);
+                    });
+
+                    document.body.appendChild(menu);
+                    positionPortalMenu(btn, menu);
+                    activePortalMenu = menu;
+                    activeWrap = wrap;
+                    wrap.classList.add('open');
+
+                    const activeItem = menu.querySelector('.st-dd-item.active');
+                    if (activeItem) {
+                        activeItem.scrollIntoView({ block: 'nearest' });
+                    }
+                });
+            }
+
+            function enhanceAllSelects(root = document) {
+                if (!root || !root.querySelectorAll) return;
+                root.querySelectorAll('select').forEach(enhanceSelect);
+            }
+
+            window.enhanceAllSatsetSelects = enhanceAllSelects;
+
+            document.addEventListener('click', (e) => {
+                if (activePortalMenu && !activePortalMenu.contains(e.target)) {
+                    closeActiveMenu();
+                }
+            });
+
+            window.addEventListener('resize', closeActiveMenu);
+            document.addEventListener('scroll', (e) => {
+                if (activePortalMenu && e.target !== activePortalMenu) {
+                    closeActiveMenu();
+                }
+            }, true);
+
+            const domObs = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    for (const node of m.addedNodes) {
+                        if (node.nodeType === 1) {
+                            if (node.tagName === 'SELECT') enhanceSelect(node);
+                            else if (node.querySelectorAll) enhanceAllSelects(node);
+                        }
+                    }
+                }
+            });
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    enhanceAllSelects();
+                    domObs.observe(document.body, { childList: true, subtree: true });
+                });
+            } else {
+                enhanceAllSelects();
+                domObs.observe(document.body, { childList: true, subtree: true });
+            }
         })();
     </script>
 
