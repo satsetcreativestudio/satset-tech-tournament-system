@@ -6,12 +6,21 @@
     <title id="metaPageTitle">SATSET BADMINTON OPEN | Live Score, Bagan & Pendaftaran Resmi</title>
     <meta name="description" id="metaPageDesc" content="Portal resmi informasi pertandingan badminton: Live Score lapangan, Bagan Pertandingan, Daftar Peserta, Hasil Akhir & Pendaftaran Online.">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="SATSET TECH Tournament Portal">
+    <meta property="og:site_name" content="SATSET TECH">
+    <meta property="og:url" content="https://satsetcreativestudio.github.io/satset-tech-tournament-system/public-viewer.html">
     <meta property="og:title" id="ogPageTitle" content="SATSET BADMINTON OPEN — Live Score, Bagan & Pendaftaran">
     <meta property="og:description" id="ogPageDesc" content="Cek jadwal tanding, live score court, bagan sistem gugur, dan pendaftaran online peserta secara real-time.">
-    <meta property="og:image" content="og-banner.png">
+    <meta property="og:image" content="https://satsetcreativestudio.github.io/satset-tech-tournament-system/og-banner.png">
+    <meta property="og:image:secure_url" content="https://satsetcreativestudio.github.io/satset-tech-tournament-system/og-banner.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1024">
+    <meta property="og:image:height" content="571">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SATSET BADMINTON OPEN — Live Score, Bagan & Pendaftaran">
+    <meta name="twitter:description" content="Cek jadwal tanding, live score court, bagan sistem gugur, dan pendaftaran online peserta secara real-time.">
+    <meta name="twitter:image" content="https://satsetcreativestudio.github.io/satset-tech-tournament-system/og-banner.png">
     <link rel="icon" type="image/png" href="icon.png">
+    <link rel="shortcut icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -142,7 +151,7 @@
     <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <div id="pubBrandLogoBox" class="w-10 h-10 accent-bg rounded-xl flex items-center justify-center font-black text-slate-950 text-xl shadow-lg overflow-hidden shrink-0">ST</div>
+                <div id="pubBrandLogoBox" class="w-10 h-10 bg-slate-950 border border-slate-700 rounded-xl flex items-center justify-center font-black text-slate-950 text-xl shadow-lg overflow-hidden shrink-0"><img src="icon.png" alt="Logo" class="w-full h-full object-contain p-0.5"></div>
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 id="pubEventName" class="font-black text-base sm:text-lg text-white tracking-wide">SATSET BADMINTON OPEN 2026</h1>
@@ -479,6 +488,7 @@
         // TEMPEL URL WEB APP (/exec) APPS SCRIPT DI SINI AGAR OTOMATIS TERHUBUNG
         // Jika diisi, tombol roda gigi akan disembunyikan dari layar penonton.
         // =========================================================================
+        const REPO_BASE_URL = "https://satsetcreativestudio.github.io/satset-tech-tournament-system";
         const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbwHA1tTfHdgoJi8WUE-sUj7AYYXErzlRa4ENjUtypYIhZPSoc-3ABAIcYJWtK6U1PWd/exec";
 
         function safeGetLocal(k, fb = null) { try { return localStorage.getItem(k) || fb; } catch (e) { return fb; } }
@@ -557,10 +567,23 @@
                 const cCount = parseInt(safeGetLocal('satset_court_count', '4')) || 4;
 
                 if (meta) {
-                    tournamentData.eventName = meta.eventName;
-                    tournamentData.city = meta.city;
-                    tournamentData.dateRange = meta.dateRange;
+                    if (meta.eventName) tournamentData.eventName = meta.eventName;
+                    if (meta.venueLocation) tournamentData.venueLocation = meta.venueLocation;
+                    if (meta.courtVenues) tournamentData.courtVenues = meta.courtVenues;
+                    if (meta.city) tournamentData.city = meta.city;
+                    if (meta.dateRange) tournamentData.dateRange = meta.dateRange;
                     tournamentData.regOpen = meta.regOpen || 'OPEN';
+                    if (meta.maintenanceMode !== undefined) tournamentData.maintenanceMode = Boolean(meta.maintenanceMode);
+                    if (meta.paymentInfo !== undefined) tournamentData.paymentInfo = meta.paymentInfo;
+                    if (meta.adminContacts) tournamentData.adminContacts = meta.adminContacts;
+                    if (meta.themeConfig) tournamentData.themeConfig = meta.themeConfig;
+                    if (meta.brandingConfig) tournamentData.brandingConfig = meta.brandingConfig;
+                    if (meta.sponsorsList) tournamentData.sponsorsList = meta.sponsorsList;
+                    if (meta.publicTabsConfig) tournamentData.publicTabsConfig = meta.publicTabsConfig;
+                    if (meta.announcementText !== undefined) tournamentData.announcementText = meta.announcementText;
+                    if (meta.handbookUrl !== undefined) tournamentData.handbookUrl = meta.handbookUrl;
+                    if (meta.agencyConfig) tournamentData.agencyConfig = meta.agencyConfig;
+                    if (meta.regFieldsConfig) tournamentData.regFieldsConfig = meta.regFieldsConfig;
                 }
                 if (classes && parts) {
                     tournamentData.classes = classes;
@@ -606,6 +629,16 @@
                         dateRange: data.dateRange || '08-13 Nov 2026',
                         regOpen: data.regOpen || 'OPEN',
                         maintenanceMode: Boolean(data.maintenanceMode),
+                        paymentInfo: data.paymentInfo !== undefined ? data.paymentInfo : (tournamentData.paymentInfo || ''),
+                        adminContacts: Array.isArray(data.adminContacts) ? data.adminContacts : (tournamentData.adminContacts || []),
+                        themeConfig: data.themeConfig || tournamentData.themeConfig || null,
+                        brandingConfig: data.brandingConfig || tournamentData.brandingConfig || null,
+                        sponsorsList: Array.isArray(data.sponsorsList) ? data.sponsorsList : (tournamentData.sponsorsList || []),
+                        publicTabsConfig: data.publicTabsConfig || tournamentData.publicTabsConfig || null,
+                        announcementText: data.announcementText !== undefined ? data.announcementText : (tournamentData.announcementText || ''),
+                        handbookUrl: data.handbookUrl !== undefined ? data.handbookUrl : (tournamentData.handbookUrl || ''),
+                        agencyConfig: data.agencyConfig || tournamentData.agencyConfig || null,
+                        regFieldsConfig: data.regFieldsConfig || tournamentData.regFieldsConfig || null,
                         classes: (data.classes && data.classes.length > 0) ? data.classes : tournamentData.classes,
                         participants: data.participants || {},
                         courts: data.courts || [],
@@ -959,11 +992,20 @@
                                 const isP2Win = m.winner && m.player2 && m.winner.id === m.player2.id;
                                 const s1 = m.winNote === 'WO' ? (isP1Win ? 'WO' : '-') : `${m.s1_p1 || '-'}/${m.s2_p1 || '-'}`;
                                 const s2 = m.winNote === 'WO' ? (isP2Win ? 'WO' : '-') : `${m.s1_p2 || '-'}/${m.s2_p2 || '-'}`;
+                                const datePart = m.oopDate ? formatShortPubDayDate(m.oopDate) : '';
+                                const timePart = m.oopTime ? m.oopTime : '';
+                                const schedLabel = (datePart || timePart)
+                                    ? `${datePart}${datePart && timePart ? ' • ' : ''}${timePart}`
+                                    : 'Jadwal belum diatur';
                                 return `
                                     <div class="bg-[#111623] border ${m.winner ? 'accent-border' : 'border-slate-800'} rounded-xl p-2.5 transition">
-                                        <div class="flex justify-between items-center text-[10px] font-mono mb-1.5">
-                                            <span class="accent-text font-extrabold">#${m.nr}:</span>
-                                            <span class="text-slate-300">${escapeHtml(m.oopTime || m.roundLabel || 'Belum dijadwalkan')}</span>
+                                        <div class="flex justify-between items-center text-[10px] font-mono mb-1">
+                                            <span class="accent-text font-extrabold">#${m.nr}</span>
+                                            <span class="text-slate-400 font-semibold">${escapeHtml(m.roundLabel || '')}</span>
+                                        </div>
+                                        <div class="flex items-center gap-1 text-[10px] ${(datePart || timePart) ? 'text-sky-300' : 'text-slate-500'} font-semibold mb-1.5 bg-slate-950/80 border border-slate-800/80 rounded-lg px-2 py-0.5">
+                                            <i class="ph-bold ph-calendar-blank text-[11px] accent-text shrink-0"></i>
+                                            <span class="truncate">${escapeHtml(schedLabel)}</span>
                                         </div>
                                         <div class="space-y-1">
                                             <div class="flex justify-between items-center p-1.5 rounded ${isP1Win ? 'ts-winner-row' : 'bg-slate-950 text-slate-200'}">
@@ -1280,15 +1322,26 @@
             if (b.logoData) {
                 document.querySelectorAll("link[rel*='icon']").forEach(el => { el.href = b.logoData; });
                 if (logoBox) logoBox.innerHTML = `<img src="${b.logoData}" alt="Logo" class="w-full h-full object-contain bg-slate-950 p-0.5">`;
-            } else if (logoBox) {
-                logoBox.innerHTML = 'ST';
+            } else {
+                document.querySelectorAll("link[rel*='icon']").forEach(el => { el.href = 'icon.png'; });
+                if (logoBox) logoBox.innerHTML = `<img src="icon.png" alt="Logo" class="w-full h-full object-contain bg-slate-950 p-0.5">`;
             }
 
             const heroWrap = document.getElementById('pubHeroBannerWrap');
             const heroImg = document.getElementById('pubHeroBannerImg');
             if (heroWrap && heroImg) {
-                if (b.bannerData) { const ogMeta = document.querySelector("meta[property='og:image']"); if (ogMeta) ogMeta.setAttribute('content', b.bannerData); heroImg.src = b.bannerData; heroWrap.classList.remove('hidden'); }
-                else heroWrap.classList.add('hidden');
+                const ogMeta = document.querySelector("meta[property='og:image']");
+                const twMeta = document.querySelector("meta[name='twitter:image']");
+                if (b.bannerData) {
+                    if (ogMeta) ogMeta.setAttribute('content', b.bannerData);
+                    if (twMeta) twMeta.setAttribute('content', b.bannerData);
+                    heroImg.src = b.bannerData;
+                    heroWrap.classList.remove('hidden');
+                } else {
+                    if (ogMeta) ogMeta.setAttribute('content', `${REPO_BASE_URL}/og-banner.png`);
+                    if (twMeta) twMeta.setAttribute('content', `${REPO_BASE_URL}/og-banner.png`);
+                    heroWrap.classList.add('hidden');
+                }
             }
 
             const wmEl = document.getElementById('eventWatermarkOverlay');

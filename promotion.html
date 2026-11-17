@@ -7,12 +7,21 @@
     <meta name="description" content="Kelola turnamen badminton lebih profesional dengan SATSET TECH: Live Score 1-12 Lapangan, Bagan Sistem Gugur Otomatis, Order of Play, Pendaftaran Online, dan Mode TV GOR.">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="SATSET TECH">
+    <meta property="og:url" content="https://satsetcreativestudio.github.io/satset-tech-tournament-system/promotion.html">
     <meta property="og:title" content="SATSET TECH — Platform Digital Manajemen Turnamen Badminton">
     <meta property="og:description" content="Tinggalkan cara manual! Live Score Real-Time, Bagan Otomatis, Pendaftaran Peserta Online, dan Cetak ID Card dalam satu sistem terintegrasi.">
-    <meta property="og:image" content="og-banner.png">
-    <!-- Custom Embedded SVG Favicon (Anti-Gray Globe Default) -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ccff00'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-weight='900' font-size='28' fill='%230b0f17'%3EST%3C/text%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ccff00'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-weight='900' font-size='28' fill='%230b0f17'%3EST%3C/text%3E%3C/svg%3E">
+    <meta property="og:image" content="https://satsetcreativestudio.github.io/satset-tech-tournament-system/og-banner.png">
+    <meta property="og:image:secure_url" content="https://satsetcreativestudio.github.io/satset-tech-tournament-system/og-banner.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1024">
+    <meta property="og:image:height" content="571">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SATSET TECH — Platform Digital Manajemen Turnamen Badminton">
+    <meta name="twitter:description" content="Tinggalkan cara manual! Live Score Real-Time, Bagan Otomatis, Pendaftaran Peserta Online, dan Cetak ID Card dalam satu sistem terintegrasi.">
+    <meta name="twitter:image" content="https://satsetcreativestudio.github.io/satset-tech-tournament-system/og-banner.png">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="shortcut icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -124,8 +133,8 @@
     <header class="sticky top-0 z-50 bg-[#0b0f17]/90 backdrop-blur-md border-b border-slate-800/80">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
             <a href="#" class="flex items-center gap-3 group">
-                <div class="w-9 h-9 accent-bg rounded-xl flex items-center justify-center font-black text-lg shadow-lg shadow-[#ccff00]/20 group-hover:scale-105 transition shrink-0">
-                    ST
+                <div id="promoBrandLogoBox" class="w-9 h-9 bg-slate-950 border border-slate-700 rounded-xl flex items-center justify-center font-black text-lg shadow-lg shadow-[#ccff00]/20 group-hover:scale-105 transition shrink-0 overflow-hidden">
+                    <img id="promoBrandLogoImg" src="icon.png" alt="SATSET TECH" class="w-full h-full object-contain p-0.5">
                 </div>
                 <div class="flex flex-col justify-center">
                     <span class="font-black text-base sm:text-lg tracking-wider text-white leading-none">SATSET <span class="accent-text">TECH</span></span>
@@ -2074,8 +2083,46 @@
             }
         });
 
+
+        // Sync Icon & OG-Banner Branding from Admin (localStorage & Google Sheets)
+        function applyPromotionSyncedBranding(b) {
+            if (!b || typeof b !== 'object') return;
+            if (b.logoData) {
+                document.querySelectorAll("link[rel*='icon']").forEach(el => { el.href = b.logoData; });
+                const navImg = document.getElementById('promoBrandLogoImg');
+                if (navImg) navImg.src = b.logoData;
+            }
+            if (b.bannerData) {
+                const ogMeta = document.querySelector("meta[property='og:image']");
+                const twMeta = document.querySelector("meta[name='twitter:image']");
+                if (ogMeta) ogMeta.setAttribute('content', b.bannerData);
+                if (twMeta) twMeta.setAttribute('content', b.bannerData);
+            }
+        }
+
+        async function syncPromotionBrandingFromCloud() {
+            let scriptEndpoint = "https://script.google.com/macros/s/AKfycbwHA1tTfHdgoJi8WUE-sUj7AYYXErzlRa4ENjUtypYIhZPSoc-3ABAIcYJWtK6U1PWd/exec";
+            try {
+                const rawMeta = localStorage.getItem('satset_meta_v2');
+                if (rawMeta) {
+                    const parsed = JSON.parse(rawMeta);
+                    if (parsed && parsed.brandingConfig) applyPromotionSyncedBranding(parsed.brandingConfig);
+                    if (parsed && parsed.scriptUrl) scriptEndpoint = parsed.scriptUrl;
+                }
+            } catch (e) {}
+            if (!scriptEndpoint) return;
+            try {
+                const res = await fetch(scriptEndpoint);
+                const data = await res.json();
+                if (data && data.status === 'ok' && data.brandingConfig) {
+                    applyPromotionSyncedBranding(data.brandingConfig);
+                }
+            } catch (e) {}
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             updateTournamentCalc();
+            syncPromotionBrandingFromCloud();
         });
     </script>
 </body>

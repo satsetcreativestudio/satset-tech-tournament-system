@@ -462,7 +462,15 @@ function setConfigMeta(ss, meta) {
   sheet.appendRow(['paymentInfo', meta.paymentInfo || '']);
   sheet.appendRow(['adminContacts', JSON.stringify(meta.adminContacts || existing.adminContacts || [])]);
   sheet.appendRow(['themeConfig', JSON.stringify(meta.themeConfig !== undefined ? meta.themeConfig : (existing.themeConfig || null))]);
-  sheet.appendRow(['brandingConfig', JSON.stringify(meta.brandingConfig !== undefined ? meta.brandingConfig : (existing.brandingConfig || null))]);
+  var brandingToSave = meta.brandingConfig !== undefined ? meta.brandingConfig : (existing.brandingConfig || null);
+  var brandingJson = JSON.stringify(brandingToSave);
+  if (brandingJson.length > 48000 && brandingToSave && typeof brandingToSave === 'object') {
+    var trimmedBranding = Object.assign({}, brandingToSave);
+    if (JSON.stringify(trimmedBranding).length > 48000) delete trimmedBranding.watermarkData;
+    if (JSON.stringify(trimmedBranding).length > 48000) delete trimmedBranding.bannerData;
+    brandingJson = JSON.stringify(trimmedBranding);
+  }
+  sheet.appendRow(['brandingConfig', brandingJson]);
   sheet.appendRow(['sponsorsList', JSON.stringify(meta.sponsorsList !== undefined ? meta.sponsorsList : (existing.sponsorsList || []))]);
   sheet.appendRow(['publicTabsConfig', JSON.stringify(meta.publicTabsConfig !== undefined ? meta.publicTabsConfig : (existing.publicTabsConfig || null))]);
   sheet.appendRow(['announcementText', meta.announcementText !== undefined ? meta.announcementText : (existing.announcementText || '')]);
