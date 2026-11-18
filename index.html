@@ -2858,11 +2858,11 @@
                     container.innerHTML += `
                         <div class="bg-slate-900 border-2 accent-border rounded-2xl p-4 flex flex-col justify-between">
                             <div onclick="openScoreModal('${escapeHtml(slot.active.cls)}', ${slot.active.rIdx}, ${slot.active.mIdx})" class="cursor-pointer">
-                                <div class="flex justify-between items-start gap-2 mb-2">
-                                    <div><span class="accent-bg text-slate-950 font-black text-xs px-2.5 py-0.5 rounded">COURT ${c}</span><span class="block text-[10px] text-slate-400 font-semibold mt-1 truncate max-w-[140px]"><i class="ph-bold ph-map-pin accent-text"></i> ${escapeHtml(getCourtVenueName(c))}</span></div>
-                                    <div class="text-right min-w-0">
-                                        <span class="block text-[10px] font-bold accent-text truncate max-w-[145px]">${escapeHtml(slot.active.cls)} #${match.nr}</span>
-                                        ${liveSchedLabel ? `<span class="inline-flex items-center gap-1 mt-1 bg-sky-500/15 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-md text-[9.5px] font-bold max-w-[155px]"><i class="ph-bold ph-calendar-blank text-[10px] accent-text shrink-0"></i><span class="truncate">${escapeHtml(liveSchedLabel)}</span></span>` : ''}
+                                <div class="flex justify-between items-start gap-2 mb-2 min-w-0">
+                                    <div class="min-w-0 flex-1"><span class="inline-block accent-bg text-slate-950 font-black text-xs px-2.5 py-0.5 rounded">COURT ${c}</span><span class="block text-[10px] text-slate-400 font-semibold mt-1 truncate"><i class="ph-bold ph-map-pin accent-text"></i> ${escapeHtml(getCourtVenueName(c))}</span></div>
+                                    <div class="text-right min-w-0 max-w-[56%] shrink-0">
+                                        <span class="block text-[10px] font-bold accent-text truncate">${escapeHtml(slot.active.cls)} #${match.nr}</span>
+                                        ${liveSchedLabel ? `<span class="inline-flex items-center gap-1 mt-1 bg-sky-500/15 text-sky-300 border border-sky-500/30 px-1.5 py-0.5 rounded-md text-[9px] font-bold max-w-full overflow-hidden"><i class="ph-bold ph-calendar-blank text-[9.5px] accent-text shrink-0"></i><span class="truncate">${escapeHtml(liveSchedLabel)}</span></span>` : ''}
                                     </div>
                                 </div>
                                 <div class="space-y-1.5 mt-3">

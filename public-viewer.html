@@ -499,7 +499,7 @@
         // Jika diisi, tombol roda gigi akan disembunyikan dari layar penonton.
         // =========================================================================
         const REPO_BASE_URL = "https://satsetcreativestudio.github.io/satset-tech-tournament-system";
-        const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbwHA1tTfHdgoJi8WUE-sUj7AYYXErzlRa4ENjUtypYIhZPSoc-3ABAIcYJWtK6U1PWd/exec";
+        const DEFAULT_API_URL = "";
 
         function safeGetLocal(k, fb = null) { try { return localStorage.getItem(k) || fb; } catch (e) { return fb; } }
         function safeSetLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -511,9 +511,6 @@
                 safeSetLocal('satset_public_api_url', paramApi.trim());
                 return paramApi.trim();
             }
-            if (DEFAULT_API_URL && DEFAULT_API_URL.trim() !== "") {
-                return DEFAULT_API_URL.trim();
-            }
             const savedPublic = safeGetLocal('satset_public_api_url', '');
             if (savedPublic) return savedPublic;
 
@@ -521,6 +518,10 @@
                 const adminMeta = JSON.parse(safeGetLocal('satset_meta_v2', 'null'));
                 if (adminMeta && adminMeta.scriptUrl) return adminMeta.scriptUrl;
             } catch (e) {}
+
+            if (DEFAULT_API_URL && DEFAULT_API_URL.trim() !== "") {
+                return DEFAULT_API_URL.trim();
+            }
             return '';
         }
 
@@ -692,6 +693,12 @@
                 }
             } catch (err) {
                 document.getElementById('lastUpdatedText').innerText = 'Gagal memuat data';
+                const gearBtn = document.getElementById('gearSetupBtn');
+                if (gearBtn) gearBtn.classList.remove('hidden');
+                const noBanner = document.getElementById('noUrlBanner');
+                if (noBanner) noBanner.classList.remove('hidden');
+                loadLocalAdminFallback();
+                populateClassDropdowns();
             } finally {
                 icon.classList.remove('animate-spin');
             }
@@ -812,7 +819,7 @@
                                         <span>${escapeHtml(c.className)}</span>
                                         <span class="font-mono text-slate-400">${escapeHtml(c.matchNr)}</span>
                                     </div>
-                                    ${liveSchedLabel ? `<div class="inline-flex items-center gap-1 bg-sky-500/15 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold"><i class="ph-bold ph-calendar-blank text-[11px] accent-text shrink-0"></i><span>${escapeHtml(liveSchedLabel)}</span></div>` : ''}
+                                    ${liveSchedLabel ? `<div class="inline-flex items-center gap-1 bg-sky-500/15 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold max-w-full overflow-hidden"><i class="ph-bold ph-calendar-blank text-[11px] accent-text shrink-0"></i><span class="truncate">${escapeHtml(liveSchedLabel)}</span></div>` : ''}
                                 </div>
                                 <div class="space-y-2.5 my-1">
                                     <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
