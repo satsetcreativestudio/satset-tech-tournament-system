@@ -952,7 +952,9 @@
         let classesList = JSON.parse(safeGetLocal('satset_classes_v2', 'null')) || [...DEFAULT_CLASSES];
         let activeCategory = classesList[0];
         let courtCount = parseInt(safeGetLocal('satset_court_count', '4')) || 4;
-        let tournamentMeta = JSON.parse(safeGetLocal('satset_meta_v2', 'null')) || { eventName: 'SATSET BADMINTON OPEN 2026', venueLocation: 'GOR PLATINUM ARENA MALANG', venueList: ['GOR PLATINUM ARENA MALANG'], city: 'MALANG, INA', dateRange: 'Min, 08 - Jum, 13 Nov 2026', scriptUrl: '', regOpen: 'OPEN', courtVenues: {} };
+        const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwHA1tTfHdgoJi8WUE-sUj7AYYXErzlRa4ENjUtypYIhZPSoc-3ABAIcYJWtK6U1PWd/exec';
+        let tournamentMeta = JSON.parse(safeGetLocal('satset_meta_v2', 'null')) || { eventName: 'SATSET BADMINTON OPEN 2026', venueLocation: 'GOR PLATINUM ARENA MALANG', venueList: ['GOR PLATINUM ARENA MALANG'], city: 'MALANG, INA', dateRange: 'Min, 08 - Jum, 13 Nov 2026', scriptUrl: DEFAULT_SCRIPT_URL, regOpen: 'OPEN', courtVenues: {} };
+        if (!tournamentMeta.scriptUrl) tournamentMeta.scriptUrl = DEFAULT_SCRIPT_URL;
         let pendingRegistrations = [];
         let participantsData = JSON.parse(safeGetLocal('satset_all_participants', '{}')) || {};
         let knockoutBracketData = JSON.parse(safeGetLocal('satset_all_brackets', '{}')) || {};

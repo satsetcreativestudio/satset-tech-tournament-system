@@ -491,7 +491,7 @@
         // Jika diisi, tombol roda gigi akan disembunyikan dari layar penonton.
         // =========================================================================
         const REPO_BASE_URL = "https://satsetcreativestudio.github.io/satset-tech-tournament-system";
-        const DEFAULT_API_URL = "";
+        const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbwHA1tTfHdgoJi8WUE-sUj7AYYXErzlRa4ENjUtypYIhZPSoc-3ABAIcYJWtK6U1PWd/exec";
 
         function safeGetLocal(k, fb = null) { try { return localStorage.getItem(k) || fb; } catch (e) { return fb; } }
         function safeSetLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -684,11 +684,13 @@
                     document.getElementById('lastUpdatedText').innerText = 'Update: ' + now;
                 }
             } catch (err) {
-                document.getElementById('lastUpdatedText').innerText = 'Gagal memuat data';
-                const gearBtn = document.getElementById('gearSetupBtn');
-                if (gearBtn) gearBtn.classList.remove('hidden');
-                const noBanner = document.getElementById('noUrlBanner');
-                if (noBanner) noBanner.classList.remove('hidden');
+                document.getElementById('lastUpdatedText').innerText = 'Gagal memuat data (coba lagi...)';
+                if (!DEFAULT_API_URL || DEFAULT_API_URL.trim() === "") {
+                    const gearBtn = document.getElementById('gearSetupBtn');
+                    if (gearBtn) gearBtn.classList.remove('hidden');
+                    const noBanner = document.getElementById('noUrlBanner');
+                    if (noBanner) noBanner.classList.remove('hidden');
+                }
                 loadLocalAdminFallback();
                 populateClassDropdowns();
             } finally {
