@@ -404,7 +404,10 @@
                 <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
                         <div><h2 class="font-extrabold text-base text-white flex items-center gap-2"><i class="ph-bold ph-calendar-check accent-text"></i> Order of Play (OOP)</h2><p class="text-xs text-slate-400">Filter tanggal dan kelas pertandingan harian.</p></div>
-                        <button type="button" onclick="printOOPSchedule()" class="accent-bg hover:brightness-95 text-slate-950 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-lg"><i class="ph-bold ph-printer text-base"></i> Print OOP Hari Ini</button>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="openBulkScheduleModal('auto')" class="bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition"><i class="ph-bold ph-magic-wand text-base"></i> Jadwal Massal & Auto-OOP</button>
+                            <button type="button" onclick="printOOPSchedule()" class="accent-bg hover:brightness-95 text-slate-950 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-lg"><i class="ph-bold ph-printer text-base"></i> Print OOP Hari Ini</button>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                         <div><label class="block text-[11px] font-bold uppercase text-slate-400 mb-1.5">Filter Tanggal</label><input type="date" id="oopFilterDate" onchange="renderOOPTable()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#ccff00]"></div>
@@ -2296,6 +2299,277 @@
                 
 
 
+    <script>
+        function openBulkScheduleModal(defaultTab = 'auto') {
+            const box = document.getElementById('bulkClassCheckboxes');
+            if (box) {
+                box.innerHTML = classesList.map(c => {
+                    const b = knockoutBracketData[c];
+                    const matchCount = b ? b.rounds.reduce((acc, r) => acc + r.matches.filter(m => !m.player1?.isBye && !m.player2?.isBye).length, 0) : 0;
+                    return `<label class="inline-flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs cursor-pointer">
+                        <input type="checkbox" class="bulk-cls-chk accent-[#ccff00]" value="${escapeHtml(c)}" ${c === activeCategory ? 'checked' : ''}>
+                        <span class="font-bold text-white">${escapeHtml(c)}</span>
+                        <span class="text-[10px] text-slate-400">(${matchCount} match)</span>
+                    </label>`;
+                }).join('');
+            }
+
+            const todayIso = document.getElementById('oopFilterDate')?.value || new Date().toISOString().split('T')[0];
+            if (document.getElementById('bulkAutoDate')) document.getElementById('bulkAutoDate').value = todayIso;
+            if (document.getElementById('bulkAutoCourts')) document.getElementById('bulkAutoCourts').value = courtCount || 4;
+
+            const hSel = document.getElementById('bulkAutoHour');
+            const mSel = document.getElementById('bulkAutoMinute');
+            if (hSel && hSel.options.length === 0) {
+                for (let h = 0; h <= 23; h++) {
+                    const hh = String(h).padStart(2, '0');
+                    hSel.innerHTML += `<option value="${hh}" ${hh === '08' ? 'selected' : ''}>${hh}</option>`;
+                }
+            }
+            if (mSel && mSel.options.length === 0) {
+                for (let m = 0; m <= 59; m++) {
+                    const mm = String(m).padStart(2, '0');
+                    mSel.innerHTML += `<option value="${mm}" ${mm === '00' ? 'selected' : ''}>${mm}</option>`;
+                }
+            }
+
+            const vSel = document.getElementById('bulkAutoVenue');
+            if (vSel) {
+                const vList = getVenueList();
+                vSel.innerHTML = vList.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+            }
+
+            if (typeof window.enhanceAllSatsetSelects === 'function') {
+                window.enhanceAllSatsetSelects(document.getElementById('bulkScheduleModal'));
+            }
+
+            switchBulkScheduleTab(defaultTab);
+            document.getElementById('bulkScheduleModal').classList.remove('hidden');
+        }
+
+        function closeBulkScheduleModal() {
+            document.getElementById('bulkScheduleModal').classList.add('hidden');
+        }
+
+        function toggleBulkClasses(state) {
+            document.querySelectorAll('.bulk-cls-chk').forEach(cb => cb.checked = state);
+        }
+
+        function switchBulkScheduleTab(tab) {
+            ['auto', 'shift', 'csv'].forEach(t => {
+                const panel = document.getElementById('bulkPanel-' + t);
+                const btn = document.getElementById('bulkTabBtn-' + t);
+                if (panel) panel.classList.toggle('hidden', t !== tab);
+                if (btn) {
+                    if (t === tab) {
+                        btn.className = 'accent-bg text-slate-950 font-extrabold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition';
+                    } else {
+                        btn.className = 'text-slate-400 hover:text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition';
+                    }
+                }
+            });
+        }
+
+        function getSelectedBulkClasses() {
+            return Array.from(document.querySelectorAll('.bulk-cls-chk:checked')).map(cb => cb.value);
+        }
+
+        function addMinutesToDateAndTime(dateStr, timeStr, deltaMinutes) {
+            const baseDate = dateStr || new Date().toISOString().split('T')[0];
+            const [y, mo, d] = baseDate.split('-').map(Number);
+            const [hh, mm] = (timeStr && /^\d{2}:\d{2}$/.test(timeStr)) ? timeStr.split(':').map(Number) : [8, 0];
+            const dt = new Date(y, mo - 1, d, hh, mm + deltaMinutes, 0, 0);
+            const newY = dt.getFullYear();
+            const newMo = String(dt.getMonth() + 1).padStart(2, '0');
+            const newD = String(dt.getDate()).padStart(2, '0');
+            const newH = String(dt.getHours()).padStart(2, '0');
+            const newM = String(dt.getMinutes()).padStart(2, '0');
+            return { date: `${newY}-${newMo}-${newD}`, time: `${newH}:${newM}` };
+        }
+
+        function finalizeBulkScheduleUpdate(updatedCount, messagePrefix) {
+            saveAllToStorage();
+            renderKnockoutBracket();
+            renderOOPTable();
+            if (typeof renderLiveReport === 'function') renderLiveReport();
+            syncLiveStateToSheets();
+            closeBulkScheduleModal();
+            alert(`${messagePrefix}: ${updatedCount} pertandingan berhasil diperbarui dan disinkronkan!`);
+        }
+
+        // 1. GENERATOR JADWAL GELOMBANG OTOMATIS
+        function applyBulkAutoWaveSchedule() {
+            const targetClasses = getSelectedBulkClasses();
+            if (targetClasses.length === 0) return alert('Pilih minimal 1 kelas target terlebih dahulu!');
+
+            const roundFilter = document.getElementById('bulkAutoRoundFilter').value;
+            const startDate = document.getElementById('bulkAutoDate').value;
+            const startHour = document.getElementById('bulkAutoHour').value || '08';
+            const startMin = document.getElementById('bulkAutoMinute').value || '00';
+            const parallelCourts = Math.max(1, parseInt(document.getElementById('bulkAutoCourts').value, 10) || 4);
+            const intervalMin = Math.max(5, parseInt(document.getElementById('bulkAutoInterval').value, 10) || 30);
+            const venue = document.getElementById('bulkAutoVenue').value || getDefaultVenueName();
+            const skipExisting = document.getElementById('bulkAutoSkipExisting').checked;
+            const skipFinished = document.getElementById('bulkAutoSkipFinished').checked;
+
+            if (!startDate) return alert('Pilih tanggal mulai terlebih dahulu!');
+
+            const queue = [];
+            targetClasses.forEach(cls => {
+                const b = knockoutBracketData[cls];
+                if (!b || !Array.isArray(b.rounds)) return;
+                b.rounds.forEach((r, rIdx) => {
+                    r.matches.forEach((m, mIdx) => {
+                        if (m.player1?.isBye || m.player2?.isBye) return;
+                        if (roundFilter !== 'ALL' && m.roundLabel !== roundFilter) return;
+                        if (skipFinished && m.winner) return;
+                        if (skipExisting && m.oopTime && /^\d{2}:\d{2}$/.test(m.oopTime)) return;
+                        queue.push({ cls, rIdx, mIdx, match: m });
+                    });
+                });
+            });
+
+            if (queue.length === 0) return alert('Tidak ada pertandingan yang memenuhi filter pada kelas terpilih (pastikan bagan sudah di-generate).');
+
+            queue.sort((a, b) => a.rIdx - b.rIdx || a.match.nr - b.match.nr);
+
+            const startTimeStr = `${startHour}:${startMin}`;
+            queue.forEach((item, idx) => {
+                const waveIndex = Math.floor(idx / parallelCourts);
+                const shifted = addMinutesToDateAndTime(startDate, startTimeStr, waveIndex * intervalMin);
+                item.match.oopDate = shifted.date;
+                item.match.oopTime = shifted.time;
+                item.match.oopVenue = venue;
+            });
+
+            document.getElementById('oopFilterDate').value = startDate;
+            finalizeBulkScheduleUpdate(queue.length, 'Auto-Generator Gelombang Selesai');
+        }
+
+        // 2. GESER WAKTU MASSAL (DELAY ADJUSTER)
+        function applyBulkTimeShift() {
+            const targetClasses = getSelectedBulkClasses();
+            if (targetClasses.length === 0) return alert('Pilih minimal 1 kelas target!');
+
+            const dateFilter = document.getElementById('bulkShiftDateFilter').value;
+            const deltaMinutes = parseInt(document.getElementById('bulkShiftMinutes').value, 10);
+            const onlyPending = document.getElementById('bulkShiftOnlyPending').checked;
+
+            if (isNaN(deltaMinutes) || deltaMinutes === 0) return alert('Masukkan selisih menit (selain 0), contoh: 30 atau -15.');
+
+            let updated = 0;
+            targetClasses.forEach(cls => {
+                const b = knockoutBracketData[cls];
+                if (!b || !Array.isArray(b.rounds)) return;
+                b.rounds.forEach(r => {
+                    r.matches.forEach(m => {
+                        if (m.player1?.isBye || m.player2?.isBye) return;
+                        if (onlyPending && m.winner) return;
+                        if (dateFilter && m.oopDate !== dateFilter) return;
+                        if (!m.oopTime || !/^\d{2}:\d{2}$/.test(m.oopTime)) return;
+
+                        const shifted = addMinutesToDateAndTime(m.oopDate, m.oopTime, deltaMinutes);
+                        m.oopDate = shifted.date;
+                        m.oopTime = shifted.time;
+                        updated++;
+                    });
+                });
+            });
+
+            if (updated === 0) return alert('Tidak ditemukan pertandingan terjadwal yang sesuai filter untuk digeser.');
+            finalizeBulkScheduleUpdate(updated, `Geser Waktu (${deltaMinutes > 0 ? '+' : ''}${deltaMinutes} menit)`);
+        }
+
+        // 3. EXPORT & IMPORT SPREADSHEET (CSV / EXCEL)
+        function exportBulkScheduleCSV() {
+            const targetClasses = getSelectedBulkClasses();
+            if (targetClasses.length === 0) return alert('Pilih minimal 1 kelas untuk diunduh!');
+
+            const rows = [['Kelas', 'No_Partai', 'Babak', 'Team_1', 'Team_2', 'Tanggal_YYYY-MM-DD', 'Jam_HH:MM', 'Lokasi_GOR']];
+            targetClasses.forEach(cls => {
+                const b = knockoutBracketData[cls];
+                if (!b || !Array.isArray(b.rounds)) return;
+                b.rounds.forEach((r, rIdx) => {
+                    r.matches.forEach((m, mIdx) => {
+                        if (m.player1?.isBye || m.player2?.isBye) return;
+                        const t1 = getMatchParticipantLabel(b, rIdx, mIdx, 1).replace(/,/g, ' ');
+                        const t2 = getMatchParticipantLabel(b, rIdx, mIdx, 2).replace(/,/g, ' ');
+                        const venue = (m.oopVenue || getDefaultVenueName()).replace(/,/g, ' ');
+                        rows.push([
+                            cls.replace(/,/g, ' '),
+                            m.nr,
+                            (m.roundLabel || '').replace(/,/g, ' '),
+                            t1,
+                            t2,
+                            m.oopDate || '',
+                            m.oopTime || '',
+                            venue
+                        ]);
+                    });
+                });
+            });
+
+            if (rows.length <= 1) return alert('Belum ada bagan pertandingan pada kelas yang dipilih.');
+            const csvContent = rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `TEMPLATE_JADWAL_OOP_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+        }
+
+        function handleBulkCsvFileUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('bulkCsvTextArea').value = e.target.result || '';
+            };
+            reader.readAsText(file);
+        }
+
+        function importBulkScheduleFromCsvText() {
+            const raw = (document.getElementById('bulkCsvTextArea').value || '').trim();
+            if (!raw) return alert('Tempelkan data CSV/Excel atau unggah file terlebih dahulu!');
+
+            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            let updated = 0;
+
+            lines.forEach((line, idx) => {
+                const cols = line.includes('\t') ? line.split('\t') : line.split(',');
+                if (cols.length < 7) return;
+                const clsName = cols[0].trim();
+                const matchNr = parseInt(String(cols[1]).replace('#', '').trim(), 10);
+                if (idx === 0 && isNaN(matchNr)) return;
+                if (!clsName || isNaN(matchNr)) return;
+
+                const newDate = (cols[5] || '').trim();
+                const newTime = (cols[6] || '').trim();
+                const newVenue = (cols[7] || '').trim();
+
+                const b = knockoutBracketData[clsName];
+                if (!b || !Array.isArray(b.rounds)) return;
+
+                b.rounds.forEach(r => {
+                    r.matches.forEach(m => {
+                        if (m.nr === matchNr && !m.player1?.isBye && !m.player2?.isBye) {
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(newDate)) m.oopDate = newDate;
+                            if (/^\d{1,2}:\d{2}$/.test(newTime)) {
+                                const [h, min] = newTime.split(':');
+                                m.oopTime = `${h.padStart(2, '0')}:${min.padStart(2, '0')}`;
+                            }
+                            if (newVenue) m.oopVenue = newVenue;
+                            updated++;
+                        }
+                    });
+                });
+            });
+
+            if (updated === 0) return alert('Tidak ada baris jadwal yang cocok. Pastikan kolom 1 berisi Nama Kelas yang persis dan kolom 2 berisi Nomor Partai.');
+            finalizeBulkScheduleUpdate(updated, 'Import Jadwal CSV/Excel Selesai');
+        }
+    </script>
+
 </body></html>`;
             const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
             const link = document.createElement('a');
@@ -4066,6 +4340,160 @@
             <div class="flex gap-2 pt-1">
                 <button type="button" onclick="resolveSeedConflict(false)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Tidak (Batal)</button>
                 <button type="button" onclick="resolveSeedConflict(true)" class="flex-1 accent-bg hover:brightness-95 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs">Ya, Gantikan & Geser</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL JADWAL MASSAL (AUTO-GENERATOR, DELAY ADJUSTER, EXPORT/IMPORT CSV) -->
+    <div id="bulkScheduleModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full p-5 sm:p-6 space-y-4 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="font-extrabold text-white text-base flex items-center gap-2">
+                        <i class="ph-bold ph-calendar-plus accent-text text-lg"></i> Manajemen Jadwal Massal (Bulk OOP)
+                    </h3>
+                    <p class="text-[11px] text-slate-400">Atur jam pertandingan ratusan peserta sekaligus & otomatis sinkron ke Public Viewer.</p>
+                </div>
+                <button type="button" onclick="closeBulkScheduleModal()" class="text-slate-400 hover:text-white p-1"><i class="ph-bold ph-x text-lg"></i></button>
+            </div>
+
+            <!-- NAVIGASI 3 MODE -->
+            <div class="grid grid-cols-3 gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                <button type="button" id="bulkTabBtn-auto" onclick="switchBulkScheduleTab('auto')" class="accent-bg text-slate-950 font-extrabold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+                    <i class="ph-bold ph-waves"></i> <span>1. Auto-Gelombang</span>
+                </button>
+                <button type="button" id="bulkTabBtn-shift" onclick="switchBulkScheduleTab('shift')" class="text-slate-400 hover:text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+                    <i class="ph-bold ph-clock-clockwise"></i> <span>2. Geser Waktu (Delay)</span>
+                </button>
+                <button type="button" id="bulkTabBtn-csv" onclick="switchBulkScheduleTab('csv')" class="text-slate-400 hover:text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+                    <i class="ph-bold ph-file-csv"></i> <span>3. Excel / CSV Massal</span>
+                </button>
+            </div>
+
+            <!-- FILTER KELAS TARGET (BERLAKU UNTUK SEMUA TAB) -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase text-slate-400">Pilih Kelas Target:</span>
+                    <div class="flex gap-2 text-[11px]">
+                        <button type="button" onclick="toggleBulkClasses(true)" class="accent-text font-bold hover:underline">Pilih Semua</button>
+                        <span class="text-slate-600">|</span>
+                        <button type="button" onclick="toggleBulkClasses(false)" class="text-slate-400 font-bold hover:underline">Kosongkan</button>
+                    </div>
+                </div>
+                <div id="bulkClassCheckboxes" class="flex flex-wrap gap-2 max-h-28 overflow-y-auto"></div>
+            </div>
+
+            <!-- TAB 1: AUTO-GENERATOR GELOMBANG -->
+            <div id="bulkPanel-auto" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950 border border-slate-800 rounded-xl p-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Babak</label>
+                        <select id="bulkAutoRoundFilter" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white font-bold">
+                            <option value="ALL">Semua Babak Aktif</option>
+                            <option value="R128">R128 (128 Besar)</option>
+                            <option value="R64">R64 (64 Besar)</option>
+                            <option value="R32">R32 (32 Besar)</option>
+                            <option value="R16">R16 (16 Besar)</option>
+                            <option value="Quarterfinals">Quarterfinals (8 Besar)</option>
+                            <option value="Semifinals">Semifinals (4 Besar)</option>
+                            <option value="Final">Final</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Tanggal Mulai</label>
+                        <input type="date" id="bulkAutoDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Jam Mulai (00-23 : 00-59)</label>
+                        <div class="flex items-center gap-1">
+                            <select id="bulkAutoHour" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white font-mono font-bold text-center"></select>
+                            <span class="text-slate-400 font-black">:</span>
+                            <select id="bulkAutoMinute" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white font-mono font-bold text-center"></select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Jumlah Lapangan Paralel</label>
+                        <input type="number" id="bulkAutoCourts" min="1" max="12" value="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Durasi / Gelombang (Menit)</label>
+                        <input type="number" id="bulkAutoInterval" min="5" max="180" step="5" value="30" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Lokasi GOR</label>
+                        <select id="bulkAutoVenue" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-sky-300 font-bold"></select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 text-xs">
+                    <label class="inline-flex items-center gap-2 cursor-pointer text-slate-200 font-semibold">
+                        <input type="checkbox" id="bulkAutoSkipExisting" class="accent-[#ccff00] w-4 h-4 rounded">
+                        <span>Lewati pertandingan yang sudah memiliki jam main</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2 cursor-pointer text-slate-200 font-semibold">
+                        <input type="checkbox" id="bulkAutoSkipFinished" checked class="accent-[#ccff00] w-4 h-4 rounded">
+                        <span>Lewati pertandingan yang sudah selesai (ada pemenang)</span>
+                    </label>
+                </div>
+
+                <button type="button" onclick="applyBulkAutoWaveSchedule()" class="w-full accent-bg hover:brightness-95 text-slate-950 font-extrabold py-3 rounded-xl text-xs shadow-lg flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-lightning text-base"></i> Generate & Terapkan Jadwal Otomatis Sekarang
+                </button>
+            </div>
+
+            <!-- TAB 2: GESER WAKTU (DELAY ADJUSTER) -->
+            <div id="bulkPanel-shift" class="hidden space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-950 border border-slate-800 rounded-xl p-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter Tanggal Pertandingan (Opsional)</label>
+                        <input type="date" id="bulkShiftDateFilter" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-bold">
+                        <span class="text-[10px] text-slate-500 block mt-1">Kosongkan untuk menggeser semua tanggal pada kelas terpilih.</span>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Selisih Waktu (Menit)</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="bulkShiftMinutes" value="30" step="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono font-bold">
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mt-2">
+                            <button type="button" onclick="document.getElementById('bulkShiftMinutes').value = -15" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded text-[10px] font-bold">-15m</button>
+                            <button type="button" onclick="document.getElementById('bulkShiftMinutes').value = 15" class="bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-1 rounded text-[10px] font-bold">+15m</button>
+                            <button type="button" onclick="document.getElementById('bulkShiftMinutes').value = 30" class="bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-1 rounded text-[10px] font-bold">+30m</button>
+                            <button type="button" onclick="document.getElementById('bulkShiftMinutes').value = 45" class="bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-1 rounded text-[10px] font-bold">+45m</button>
+                            <button type="button" onclick="document.getElementById('bulkShiftMinutes').value = 60" class="bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-1 rounded text-[10px] font-bold">+60m</button>
+                        </div>
+                    </div>
+                </div>
+                <label class="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 font-semibold cursor-pointer">
+                    <input type="checkbox" id="bulkShiftOnlyPending" checked class="accent-[#ccff00] w-4 h-4 rounded">
+                    <span>Hanya geser pertandingan yang BELUM selesai (Pending / Belum Main)</span>
+                </label>
+                <button type="button" onclick="applyBulkTimeShift()" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold py-3 rounded-xl text-xs shadow-lg flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-clock-countdown text-base"></i> Geser Semua Jam Pertandingan Terpilih
+                </button>
+            </div>
+
+            <!-- TAB 3: EXPORT & IMPORT EXCEL / CSV -->
+            <div id="bulkPanel-csv" class="hidden space-y-4">
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <p class="text-xs font-bold text-white">Langkah A: Download Template Jadwal (.CSV)</p>
+                            <p class="text-[11px] text-slate-400">Buka di Excel / Google Sheets, isi kolom Tanggal (`YYYY-MM-DD`) & Jam (`HH:MM`), lalu simpan kembali.</p>
+                        </div>
+                        <button type="button" onclick="exportBulkScheduleCSV()" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shrink-0">
+                            <i class="ph-bold ph-download-simple"></i> Download CSV Jadwal
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <p class="text-xs font-bold text-white">Langkah B: Upload File CSV atau Paste Data dari Excel</p>
+                    <input type="file" id="bulkCsvFileInput" accept=".csv,.txt" onchange="handleBulkCsvFileUpload(event)" class="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-white hover:file:bg-slate-700 cursor-pointer">
+                    <textarea id="bulkCsvTextArea" rows="5" placeholder="Atau copy-paste langsung baris data dari Excel / Google Sheets ke sini (Format: Kelas, No_Partai, Babak, Team_1, Team_2, Tanggal, Jam, Lokasi)..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-[#ccff00]"></textarea>
+                    <button type="button" onclick="importBulkScheduleFromCsvText()" class="w-full accent-bg hover:brightness-95 text-slate-950 font-extrabold py-3 rounded-xl text-xs shadow-lg flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-upload-simple text-base"></i> Terapkan Jadwal dari CSV / Excel
+                    </button>
+                </div>
             </div>
         </div>
     </div>
