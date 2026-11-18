@@ -554,6 +554,7 @@
                             <button type="button" onclick="openEditWaPromoModal()" data-hint-title="Edit Pesan Share WA" data-hint="Ubah format & kalimat pesan pengumuman WhatsApp yang disalin dari tombol Share Info WA di header kanan atas." class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5"><i class="ph-bold ph-pencil-simple-line"></i> Edit Info WA</button>
                             <button type="button" id="btnToggleMaintenanceMode" onclick="toggleMaintenanceMode()" data-hint-title="Mode Maintenance / Developer" data-hint="Aktifkan untuk menutup sementara akses Public Viewer dengan layar pemberitahuan perbaikan saat panitia mengecek tampilan." class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition"><i class="ph-bold ph-wrench"></i> <span id="maintenanceBtnLabel">Developer: OFF</span></button>
                             <button type="button" onclick="openPublicViewerPreview()" data-hint-title="Buka Preview Public Viewer" data-hint="Membuka halaman Public Viewer di tab baru dengan akses bypass ?preview=1 agar panitia bisa mengecek tampilan meski Mode Developer ON." class="bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition"><i class="ph-bold ph-eye"></i> Preview Publik</button>
+                            <button type="button" onclick="openPromotionPagePreview()" data-hint-title="Buka Halaman Promotion / Landing Page" data-hint="Membuka halaman promosi / landing page SATSET TECH sesuai link pada Kartu 7 (atau promotion.html jika link Kartu 7 masih kosong)." class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition"><i class="ph-bold ph-rocket-launch"></i> Preview Promotion</button>
                         </div>
                     </div>
                 </div>
@@ -762,6 +763,9 @@
                                 <label class="block text-[11px] font-bold text-slate-400 mb-1">No. WA Bisnis Promosi (Opsional)</label>
                                 <input type="tel" id="setAgencyWa" data-hint-title="No. WA Bisnis Promosi" data-hint="Nomor WhatsApp bisnis yang muncul pada tombol Hubungi Kami di footer halaman publik" placeholder="0812xxxx (muncul tombol hubungi kami di footer)" disabled class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white">
                             </div>
+                        </div>
+                        <div class="pt-1">
+                            <button type="button" onclick="openPromotionPagePreview()" class="w-full bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><i class="ph-bold ph-arrow-square-out"></i> Buka Link Landing Page / Promotion</button>
                         </div>
                     </div>
 
@@ -1233,7 +1237,8 @@
                         roundLabel: pendingMatch.roundLabel || '',
                         team1: `${pendingMatch.player1.name}${pendingMatch.player1.club ? ' (' + pendingMatch.player1.club + ')' : ''}`,
                         team2: `${pendingMatch.player2.name}${pendingMatch.player2.club ? ' (' + pendingMatch.player2.club + ')' : ''}`,
-                        oopTime: pendingMatch.oopTime || ''
+                        oopDate: pendingMatch.oopDate || slot.pending.oopDate || '',
+                        oopTime: pendingMatch.oopTime || slot.pending.oopTime || ''
                     };
                 }
                 if (activeMatch && activeMatch.player1 && activeMatch.player2) {
@@ -1246,10 +1251,12 @@
                         score: `${activeMatch.s1_p1}-${activeMatch.s1_p2} / ${activeMatch.s2_p1}-${activeMatch.s2_p2}${activeMatch.s3_p1 || activeMatch.s3_p2 ? ' / ' + activeMatch.s3_p1 + '-' + activeMatch.s3_p2 : ''}`,
                         status: 'LIVE',
                         venue: getCourtVenueName(c),
+                        oopDate: activeMatch.oopDate || slot.active.oopDate || '',
+                        oopTime: activeMatch.oopTime || slot.active.oopTime || '',
                         pending: pendingInfo
                     });
                 } else {
-                    courtsPayload.push({ court: c, status: 'STANDBY', venue: getCourtVenueName(c), pending: pendingInfo });
+                    courtsPayload.push({ court: c, status: 'STANDBY', venue: getCourtVenueName(c), oopDate: '', oopTime: '', pending: pendingInfo });
                 }
             }
             try {
@@ -2674,7 +2681,7 @@
 
             if (selectedCourt) {
                 const slot = normalizeCourtSlot(courtAssignments[selectedCourt]);
-                const newRef = { cls, rIdx, mIdx, venue: match.oopVenue || getDefaultVenueName() };
+                const newRef = { cls, rIdx, mIdx, venue: match.oopVenue || getDefaultVenueName(), oopDate: match.oopDate || '', oopTime: match.oopTime || '' };
                 if (assignMode === 'PENDING') {
                     slot.pending = newRef;
                 } else if (assignMode === 'LIVE') {
@@ -2815,12 +2822,17 @@
 
                 let pendingCardHtml = '';
                 if (pMatch && pMatch.player1 && pMatch.player2) {
+                    const pendDateRaw = pMatch.oopDate || slot.pending?.oopDate || '';
+                    const pendTimeRaw = pMatch.oopTime || slot.pending?.oopTime || '';
+                    const pendDatePart = pendDateRaw ? formatShortIndoDayDate(pendDateRaw) : '';
+                    const pendSchedLabel = (pendDatePart || pendTimeRaw) ? `${pendDatePart}${pendDatePart && pendTimeRaw ? ' • ' : ''}${pendTimeRaw}` : '';
                     pendingCardHtml = `
                         <div class="mt-3 pt-2.5 border-t border-amber-500/30 bg-amber-500/10 rounded-xl p-2.5 space-y-1.5">
                             <div class="flex items-center justify-between gap-1">
                                 <span class="text-[9.5px] font-black uppercase text-amber-300 tracking-wider">PENDING / SIAP-SIAP</span>
                                 <span class="text-[9.5px] font-mono text-amber-200">${escapeHtml(slot.pending.cls)} #${pMatch.nr}</span>
                             </div>
+                            ${pendSchedLabel ? `<div class="flex items-center gap-1 text-[10px] text-sky-300 font-bold bg-slate-950/75 border border-slate-800/80 rounded-lg px-2 py-0.5"><i class="ph-bold ph-calendar-blank text-[10px] text-amber-300 shrink-0"></i><span class="truncate">${escapeHtml(pendSchedLabel)}</span></div>` : ''}
                             <div onclick="openScoreModal('${escapeHtml(slot.pending.cls)}', ${slot.pending.rIdx}, ${slot.pending.mIdx})" class="text-[11px] text-white font-semibold truncate cursor-pointer hover:underline">
                                 ${escapeHtml(pMatch.player1.name)} vs ${escapeHtml(pMatch.player2.name)}
                             </div>
@@ -2831,6 +2843,10 @@
                 }
 
                 if (match && match.player1 && match.player2) {
+                    const liveDateRaw = match.oopDate || slot.active?.oopDate || '';
+                    const liveTimeRaw = match.oopTime || slot.active?.oopTime || '';
+                    const liveDatePart = liveDateRaw ? formatShortIndoDayDate(liveDateRaw) : '';
+                    const liveSchedLabel = (liveDatePart || liveTimeRaw) ? `${liveDatePart}${liveDatePart && liveTimeRaw ? ' • ' : ''}${liveTimeRaw}` : '';
                     const activeLm = (match.linesmen || []).filter(Boolean);
                     const officialsHtml = (match.umpire || activeLm.length > 0)
                         ? `<div class="mt-2 pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-400 space-y-0.5">
@@ -2842,9 +2858,12 @@
                     container.innerHTML += `
                         <div class="bg-slate-900 border-2 accent-border rounded-2xl p-4 flex flex-col justify-between">
                             <div onclick="openScoreModal('${escapeHtml(slot.active.cls)}', ${slot.active.rIdx}, ${slot.active.mIdx})" class="cursor-pointer">
-                                <div class="flex justify-between items-center mb-2">
+                                <div class="flex justify-between items-start gap-2 mb-2">
                                     <div><span class="accent-bg text-slate-950 font-black text-xs px-2.5 py-0.5 rounded">COURT ${c}</span><span class="block text-[10px] text-slate-400 font-semibold mt-1 truncate max-w-[140px]"><i class="ph-bold ph-map-pin accent-text"></i> ${escapeHtml(getCourtVenueName(c))}</span></div>
-                                    <span class="text-[10px] font-bold accent-text truncate max-w-[130px]">${escapeHtml(slot.active.cls)} #${match.nr}</span>
+                                    <div class="text-right min-w-0">
+                                        <span class="block text-[10px] font-bold accent-text truncate max-w-[145px]">${escapeHtml(slot.active.cls)} #${match.nr}</span>
+                                        ${liveSchedLabel ? `<span class="inline-flex items-center gap-1 mt-1 bg-sky-500/15 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-md text-[9.5px] font-bold max-w-[155px]"><i class="ph-bold ph-calendar-blank text-[10px] accent-text shrink-0"></i><span class="truncate">${escapeHtml(liveSchedLabel)}</span></span>` : ''}
+                                    </div>
                                 </div>
                                 <div class="space-y-1.5 mt-3">
                                     <div class="flex justify-between text-xs font-bold"><span class="truncate max-w-[155px] text-white">${escapeHtml(match.player1.name)}</span><span class="accent-text font-mono">${match.s1_p1}/${match.s2_p1}</span></div>
@@ -3249,6 +3268,19 @@
             const baseUrl = getResolvedPublicViewerUrl();
             const sep = baseUrl.includes('?') ? '&' : '?';
             window.open(`${baseUrl}${sep}preview=1`, '_blank');
+        }
+
+        function openPromotionPagePreview() {
+            const inputUrl = document.getElementById('setAgencyUrl')?.value.trim() || '';
+            const savedUrl = (tournamentMeta.agencyConfig && tournamentMeta.agencyConfig.url) ? String(tournamentMeta.agencyConfig.url).trim() : '';
+            let targetUrl = inputUrl || savedUrl;
+            if (!targetUrl) {
+                const hrefClean = window.location.href.split('?')[0].split('#')[0];
+                targetUrl = hrefClean.substring(0, hrefClean.lastIndexOf('/') + 1) + 'promotion.html';
+            } else if (!/^https?:\/\//i.test(targetUrl) && !targetUrl.startsWith('./') && !targetUrl.startsWith('/')) {
+                targetUrl = 'https://' + targetUrl;
+            }
+            window.open(targetUrl, '_blank', 'noopener');
         }
 
         function renderMaintenanceToggleUI() {

@@ -73,7 +73,7 @@ function doGet(e) {
   const courts = [];
   const liveSheet = ss.getSheetByName(LIVE_SHEET);
   if (liveSheet && liveSheet.getLastRow() > 1) {
-    const numCols = Math.max(liveSheet.getLastColumn(), 8);
+    const numCols = Math.max(liveSheet.getLastColumn(), 11);
     const cRows = liveSheet.getRange(2, 1, liveSheet.getLastRow() - 1, numCols).getValues();
     cRows.forEach(r => {
       let pendingObj = null;
@@ -89,6 +89,8 @@ function doGet(e) {
         team2: r[5],
         score: r[6],
         venue: String(r[8] || ''),
+        oopDate: String(r[9] || ''),
+        oopTime: String(r[10] || ''),
         pending: pendingObj
       });
     });
@@ -267,16 +269,16 @@ function doPost(e) {
       let liveSheet = ss.getSheetByName(LIVE_SHEET);
       if (!liveSheet) liveSheet = ss.insertSheet(LIVE_SHEET);
       liveSheet.clear();
-      liveSheet.appendRow(['Court', 'Status', 'Kelas', 'No Partai', 'Team 1', 'Team 2', 'Skor Live', 'Pending Next Match', 'Lokasi Lapangan']);
-      liveSheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#0b0f17').setFontColor('#ccff00');
+      liveSheet.appendRow(['Court', 'Status', 'Kelas', 'No Partai', 'Team 1', 'Team 2', 'Skor Live', 'Pending Next Match', 'Lokasi Lapangan', 'Tanggal OOP', 'Jam OOP']);
+      liveSheet.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#0b0f17').setFontColor('#ccff00');
 
       const courts = payload.courts || [];
       if (courts.length > 0) {
         const cRows = courts.map(c => [
           c.court, c.status || 'STANDBY', c.className || '-', c.matchNr || '-', c.team1 || '-', c.team2 || '-', c.score || '-',
-          c.pending ? JSON.stringify(c.pending) : '', c.venue || ''
+          c.pending ? JSON.stringify(c.pending) : '', c.venue || '', c.oopDate || '', c.oopTime || ''
         ]);
-        liveSheet.getRange(2, 1, cRows.length, 9).setValues(cRows);
+        liveSheet.getRange(2, 1, cRows.length, 11).setValues(cRows);
       }
 
       if (Array.isArray(payload.results)) {

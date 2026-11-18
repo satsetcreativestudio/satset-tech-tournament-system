@@ -616,14 +616,15 @@
                                 roundLabel: pm.roundLabel || '',
                                 team1: pm.player1.name + (pm.player1.club ? ' (' + pm.player1.club + ')' : ''),
                                 team2: pm.player2.name + (pm.player2.club ? ' (' + pm.player2.club + ')' : ''),
-                                oopTime: pm.oopTime || ''
+                                oopDate: pm.oopDate || pendingRef.oopDate || '',
+                                oopTime: pm.oopTime || pendingRef.oopTime || ''
                             };
                         }
                         if (m && m.player1 && m.player2) {
                             const s3 = (m.s3_p1 || m.s3_p2) ? ' / ' + m.s3_p1 + '-' + m.s3_p2 : '';
-                            courts.push({ court: c, status: 'LIVE', className: activeRef.cls, matchNr: '#' + m.nr, team1: m.player1.name, team2: m.player2.name, score: m.s1_p1 + '-' + m.s1_p2 + ' / ' + m.s2_p1 + '-' + m.s2_p2 + s3, venue: venueName, pending: pendingInfo });
+                            courts.push({ court: c, status: 'LIVE', className: activeRef.cls, matchNr: '#' + m.nr, team1: m.player1.name, team2: m.player2.name, score: m.s1_p1 + '-' + m.s1_p2 + ' / ' + m.s2_p1 + '-' + m.s2_p2 + s3, venue: venueName, oopDate: m.oopDate || activeRef.oopDate || '', oopTime: m.oopTime || activeRef.oopTime || '', pending: pendingInfo });
                         } else {
-                            courts.push({ court: c, status: 'STANDBY', venue: venueName, pending: pendingInfo });
+                            courts.push({ court: c, status: 'STANDBY', venue: venueName, oopDate: '', oopTime: '', pending: pendingInfo });
                         }
                     }
                     tournamentData.courts = courts;
@@ -669,7 +670,16 @@
                         regFieldsConfig: data.regFieldsConfig || tournamentData.regFieldsConfig || null,
                         classes: (data.classes && data.classes.length > 0) ? data.classes : tournamentData.classes,
                         participants: data.participants || {},
-                        courts: data.courts || [],
+                        courts: Array.isArray(data.courts) ? data.courts.map(ct => ({
+                            ...ct,
+                            oopDate: ct.oopDate || '',
+                            oopTime: ct.oopTime || '',
+                            pending: ct.pending ? {
+                                ...ct.pending,
+                                oopDate: ct.pending.oopDate || '',
+                                oopTime: ct.pending.oopTime || ''
+                            } : null
+                        })) : [],
                         results: data.results || [],
                         brackets: data.brackets || {}
                     };
@@ -736,6 +746,16 @@
             if (isNaN(d.getTime())) return dateStr;
             return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
         }
+        function formatShortPubDayDate(dateStr) {
+            if (!dateStr) return '';
+            const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const parts = String(dateStr).split('-');
+            if (parts.length !== 3) return dateStr;
+            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            if (isNaN(d.getTime())) return dateStr;
+            return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
+        }
         function getPubCourtVenue(c) {
             if (c.venue && String(c.venue).trim()) return String(c.venue).trim();
             const map = tournamentData.courtVenues || {};
@@ -756,14 +776,18 @@
             grid.innerHTML = courts.map(c => {
                 const isLive = c.status === 'LIVE' && c.team1 && c.team1 !== '-';
                 const p = c.pending;
+                const pendDatePart = (p && p.oopDate) ? formatShortPubDayDate(p.oopDate) : '';
+                const pendTimePart = (p && p.oopTime) ? p.oopTime : '';
+                const pendSchedLabel = (pendDatePart || pendTimePart) ? `${pendDatePart}${pendDatePart && pendTimePart ? ' • ' : ''}${pendTimePart}` : '';
                 const pendingBoxHtml = (p && p.team1 && p.team2) ? `
-                    <div class="mt-3 pt-2.5 border-t border-amber-500/30 bg-amber-500/10 rounded-xl p-2.5 space-y-1">
+                    <div class="mt-3 pt-2.5 border-t border-amber-500/30 bg-amber-500/10 rounded-xl p-2.5 space-y-1.5">
                         <div class="flex items-center justify-between text-[10px]">
                             <span class="font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
                                 <i class="ph-bold ph-clock-countdown"></i> NEXT / PENDING
                             </span>
                             <span class="font-mono text-amber-200">${escapeHtml(p.className || '')} ${escapeHtml(p.matchNr || '')}</span>
                         </div>
+                        ${pendSchedLabel ? `<div class="flex items-center gap-1 text-[10px] text-sky-300 font-bold bg-slate-950/80 border border-slate-800/80 rounded-lg px-2 py-0.5"><i class="ph-bold ph-calendar-blank text-[10px] text-amber-300 shrink-0"></i><span class="truncate">${escapeHtml(pendSchedLabel)}</span></div>` : ''}
                         <p class="text-[11px] font-bold text-white leading-snug">${escapeHtml(p.team1)} <span class="text-amber-400 font-black">VS</span> ${escapeHtml(p.team2)}</p>
                         <p class="text-[10px] text-amber-200/80">Harap bersiap masuk lapangan berikutnya.</p>
                     </div>
@@ -771,6 +795,9 @@
 
                 if (isLive) {
                     const sets = String(c.score || '0-0').split('/').map(s => s.trim());
+                    const liveDatePart = c.oopDate ? formatShortPubDayDate(c.oopDate) : '';
+                    const liveTimePart = c.oopTime ? c.oopTime : '';
+                    const liveSchedLabel = (liveDatePart || liveTimePart) ? `${liveDatePart}${liveDatePart && liveTimePart ? ' • ' : ''}${liveTimePart}` : '';
                     return `
                         <div class="bg-slate-900 border-2 accent-border rounded-2xl p-5 shadow-xl shadow-[#ccff00]/5 flex flex-col justify-between relative overflow-hidden">
                             <div>
@@ -780,9 +807,12 @@
                                         <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span> ON MATCH
                                     </span>
                                 </div>
-                                <div class="text-[11px] font-extrabold accent-text uppercase tracking-wide mb-3 pb-2 border-b border-slate-800 flex justify-between">
-                                    <span>${escapeHtml(c.className)}</span>
-                                    <span class="font-mono text-slate-400">${escapeHtml(c.matchNr)}</span>
+                                <div class="mb-3 pb-2 border-b border-slate-800 space-y-1.5">
+                                    <div class="text-[11px] font-extrabold accent-text uppercase tracking-wide flex justify-between items-center">
+                                        <span>${escapeHtml(c.className)}</span>
+                                        <span class="font-mono text-slate-400">${escapeHtml(c.matchNr)}</span>
+                                    </div>
+                                    ${liveSchedLabel ? `<div class="inline-flex items-center gap-1 bg-sky-500/15 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold"><i class="ph-bold ph-calendar-blank text-[11px] accent-text shrink-0"></i><span>${escapeHtml(liveSchedLabel)}</span></div>` : ''}
                                 </div>
                                 <div class="space-y-2.5 my-1">
                                     <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
