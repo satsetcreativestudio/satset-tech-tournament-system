@@ -145,8 +145,6 @@
         </div>
     </div>
 
-
-
     <!-- TOP NAVBAR -->
     <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
@@ -206,11 +204,6 @@
 
     <!-- MAIN CONTENT -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <!-- HERO BANNER EVENT (OPTIONAL UPLOAD) -->
-        <div id="pubHeroBannerWrap" class="hidden rounded-2xl overflow-hidden border border-slate-800 shadow-2xl relative">
-            <img id="pubHeroBannerImg" src="" alt="Banner Turnamen" class="w-full max-h-72 sm:max-h-96 object-contain bg-slate-950 mx-auto block">
-        </div>
-
         <!-- RUNNING TEXT / PENGUMUMAN & HANDBOOK LINK -->
         <div id="pubAnnouncementBar" class="hidden bg-slate-900/90 border border-slate-800 rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -221,7 +214,6 @@
                 <i class="ph-bold ph-file-pdf text-red-400"></i> Buku Panduan / Regulasi
             </a>
         </div>
-
 
         <!-- BANNER JIKA URL BELUM DIATUR -->
         <div id="noUrlBanner" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
@@ -301,8 +293,7 @@
             </div>
         </section>
 
-        <!-- SECTION: HASIL PERTANDINGAN SELESAI -->
-                <!-- SECTION: KLASEMEN JUARA KLUB -->
+        <!-- SECTION: KLASEMEN JUARA KLUB -->
         <section id="psec-leaderboard" class="hidden space-y-4">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -331,7 +322,8 @@
             </div>
         </section>
 
-<section id="psec-results" class="space-y-5 hidden">
+        <!-- SECTION: HASIL PERTANDINGAN SELESAI -->
+        <section id="psec-results" class="space-y-5 hidden">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-xs font-bold text-slate-400">Filter Kelas:</span>
@@ -1407,22 +1399,14 @@
                 if (logoBox) logoBox.innerHTML = `<img src="icon.png" alt="Logo" class="w-full h-full object-contain bg-slate-950 p-0.5">`;
             }
 
-            const heroWrap = document.getElementById('pubHeroBannerWrap');
-            const heroImg = document.getElementById('pubHeroBannerImg');
-            if (heroWrap && heroImg) {
-                const ogMeta = document.querySelector("meta[property='og:image']");
-                const twMeta = document.querySelector("meta[name='twitter:image']");
-                if (b.bannerData) {
-                    if (ogMeta) ogMeta.setAttribute('content', b.bannerData);
-                    if (twMeta) twMeta.setAttribute('content', b.bannerData);
-                    heroImg.src = b.bannerData;
-                    heroWrap.classList.remove('hidden');
-                } else {
-                    if (ogMeta) ogMeta.setAttribute('content', `${REPO_BASE_URL}/og-banner.png`);
-                    if (twMeta) twMeta.setAttribute('content', `${REPO_BASE_URL}/og-banner.png`);
-                    heroWrap.classList.add('hidden');
-                }
-            }
+            // Sinkronisasi OG Banner hanya ke meta tags untuk share link ke grup (tidak ditampilkan di halaman)
+            const ogMeta = document.querySelector("meta[property='og:image']");
+            const ogSecureMeta = document.querySelector("meta[property='og:image:secure_url']");
+            const twMeta = document.querySelector("meta[name='twitter:image']");
+            const activeBannerUrl = b.bannerData || `${REPO_BASE_URL}/og-banner.png`;
+            if (ogMeta) ogMeta.setAttribute('content', activeBannerUrl);
+            if (ogSecureMeta) ogSecureMeta.setAttribute('content', activeBannerUrl);
+            if (twMeta) twMeta.setAttribute('content', activeBannerUrl);
 
             const wmEl = document.getElementById('eventWatermarkOverlay');
             if (wmEl) {
