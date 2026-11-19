@@ -2296,10 +2296,14 @@
                         <thead><tr><th>No Partai</th><th>Babak</th><th>Team 1</th><th>Klub 1</th><th>Team 2</th><th>Klub 2</th><th>Jadwal</th><th>Lokasi</th><th>Skor</th><th>Pemenang</th></tr></thead>
                         <tbody>${rowsHtml}</tbody>
                     </table>
-                
+                </body></html>`;
+            const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `MATCH_SHEET_${activeCategory.replace(/\s+/g, '_')}.xls`;
+            link.click();
+        }
 
-
-    <script>
         function openBulkScheduleModal(defaultTab = 'auto') {
             const box = document.getElementById('bulkClassCheckboxes');
             if (box) {
@@ -2567,15 +2571,6 @@
 
             if (updated === 0) return alert('Tidak ada baris jadwal yang cocok. Pastikan kolom 1 berisi Nama Kelas yang persis dan kolom 2 berisi Nomor Partai.');
             finalizeBulkScheduleUpdate(updated, 'Import Jadwal CSV/Excel Selesai');
-        }
-    </script>
-
-</body></html>`;
-            const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `MATCH_SHEET_${activeCategory.replace(/\s+/g, '_')}.xls`;
-            link.click();
         }
 
         function getMatchParticipantLabel(b, rIdx, mIdx, slotNum) {
