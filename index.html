@@ -846,33 +846,33 @@
 
     <!-- MODAL KONTROL PARTAI -->
     <div id="scoreModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3.5 my-auto max-h-[92vh] overflow-y-auto">
-            <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
-                <h3 class="font-bold text-white text-sm">Kontrol Partai <span id="modal-match-nr" class="accent-text font-mono">#1</span></h3>
-                <button type="button" onclick="closeScoreModal()" class="text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3.5 my-auto max-h-[92vh] overflow-y-auto overflow-x-hidden">
+            <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+                <h3 class="font-bold text-white text-sm truncate">Kontrol Partai <span id="modal-match-nr" class="accent-text font-mono">#1</span></h3>
+                <button type="button" onclick="closeScoreModal()" class="text-slate-400 hover:text-white shrink-0"><i class="ph-bold ph-x text-lg"></i></button>
             </div>
-            <div class="grid grid-cols-2 gap-3 text-center">
-                <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400 block font-bold uppercase">Team 1</span><span id="modal-p1-name" class="font-bold text-xs text-white block mt-1">Player 1</span></div>
-                <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400 block font-bold uppercase">Team 2</span><span id="modal-p2-name" class="font-bold text-xs text-white block mt-1">Player 2</span></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
+                <div class="min-w-0 bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-col justify-center"><span class="text-[10px] text-slate-400 block font-bold uppercase">Team 1</span><span id="modal-p1-name" class="font-bold text-xs text-white block mt-1 leading-snug break-words">Player 1</span></div>
+                <div class="min-w-0 bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-col justify-center"><span class="text-[10px] text-slate-400 block font-bold uppercase">Team 2</span><span id="modal-p2-name" class="font-bold text-xs text-white block mt-1 leading-snug break-words">Player 2</span></div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Hari & Tanggal OOP</label><input type="date" id="modal-oop-date" onchange="updateModalDayPreview(); refreshModalTimeOptions();" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><span id="modal-oop-day-preview" class="block text-[10px] accent-text font-bold mt-0.5"></span></div>
-                <div>
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                <div class="min-w-0 sm:col-span-4"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Hari & Tanggal OOP</label><input type="date" id="modal-oop-date" onchange="updateModalDayPreview(); refreshModalTimeOptions();" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"><span id="modal-oop-day-preview" class="block text-[10px] accent-text font-bold mt-1 truncate"></span></div>
+                <div class="min-w-0 sm:col-span-4">
                     <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Jam Main (00-23 : 00-59)</label>
-                    <div class="flex items-center gap-1">
-                        <select id="modal-oop-hour" onchange="onModalTimeDropdownChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1.5 text-xs text-white font-mono font-bold text-center focus:outline-none focus:border-[#ccff00]"></select>
-                        <span class="text-slate-400 font-black text-xs">:</span>
-                        <select id="modal-oop-minute" onchange="onModalTimeDropdownChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1.5 text-xs text-white font-mono font-bold text-center focus:outline-none focus:border-[#ccff00]"></select>
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <div class="flex-1 min-w-0"><select id="modal-oop-hour" onchange="onModalTimeDropdownChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1.5 text-xs text-white font-mono font-bold text-center focus:outline-none focus:border-[#ccff00]"></select></div>
+                        <span class="text-slate-400 font-black text-xs shrink-0">:</span>
+                        <div class="flex-1 min-w-0"><select id="modal-oop-minute" onchange="onModalTimeDropdownChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1.5 text-xs text-white font-mono font-bold text-center focus:outline-none focus:border-[#ccff00]"></select></div>
                     </div>
                     <input type="hidden" id="modal-oop-time" value="">
                 </div>
-                <div class="col-span-2 sm:col-span-1"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Lokasi Lapangan / GOR</label><select id="modal-oop-venue" onchange="refreshModalTimeOptions()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-sky-300 font-bold"></select></div>
-                <div id="modal-time-conflict-box" class="hidden col-span-2 sm:col-span-3 bg-amber-500/15 border border-amber-500/40 text-amber-200 rounded-lg px-2.5 py-1.5 text-[11px] flex items-start gap-2">
+                <div class="min-w-0 sm:col-span-4"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Lokasi Lapangan / GOR</label><select id="modal-oop-venue" onchange="refreshModalTimeOptions()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-sky-300 font-bold"></select></div>
+                <div id="modal-time-conflict-box" class="hidden sm:col-span-12 bg-amber-500/15 border border-amber-500/40 text-amber-200 rounded-lg px-2.5 py-1.5 text-[11px] flex items-start gap-2">
                     <i class="ph-bold ph-warning text-amber-400 text-sm shrink-0 mt-0.5"></i>
                     <span id="modal-time-conflict-text"></span>
                 </div>
-                <div><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Pilih Court</label><select id="modal-assign-court" onchange="onModalCourtSelectChange(); refreshModalTimeOptions();" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs accent-text font-bold"><option value="">-- Tidak di Court --</option></select></div>
-                <div class="col-span-1 sm:col-span-2"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Status Antrean</label><select id="modal-court-mode" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-amber-300 font-bold"><option value="AUTO">Otomatis (Live / Pending)</option><option value="LIVE">LIVE (Main Sekarang)</option><option value="PENDING">PENDING (Siap-Siap / Next)</option></select></div>
+                <div class="min-w-0 sm:col-span-6"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Pilih Court</label><select id="modal-assign-court" onchange="onModalCourtSelectChange(); refreshModalTimeOptions();" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs accent-text font-bold"><option value="">-- Tidak di Court --</option></select></div>
+                <div class="min-w-0 sm:col-span-6"><label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Status Antrean</label><select id="modal-court-mode" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-bold"><option value="AUTO">Otomatis (Live / Pending)</option><option value="LIVE">LIVE (Main Sekarang)</option><option value="PENDING">PENDING (Siap-Siap / Next)</option></select></div>
             </div>
             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
                 <div class="flex items-center justify-between">
@@ -4649,11 +4649,13 @@
             display: inline-flex;
             align-items: center;
             min-width: 0;
+            max-width: 100%;
             user-select: none;
         }
         .st-dd.st-dd-block {
             display: flex;
             width: 100%;
+            max-width: 100%;
         }
         .st-dd-btn {
             width: 100%;
@@ -4767,7 +4769,8 @@
                 const minW = Math.max(rect.width, 76);
 
                 menu.style.minWidth = minW + 'px';
-                menu.style.maxWidth = Math.min(340, window.innerWidth - margin * 2) + 'px';
+                menu.style.width = 'max-content';
+                menu.style.maxWidth = Math.min(380, window.innerWidth - margin * 2) + 'px';
 
                 const spaceBelow = window.innerHeight - rect.bottom - margin;
                 const spaceAbove = rect.top - margin;
@@ -4804,8 +4807,8 @@
                 sel.dataset.stEnhanced = '1';
 
                 const origClass = sel.className || '';
-                const isFullWidth = /w-full/.test(origClass);
-                const isCentered = /text-center/.test(origClass);
+                const isFullWidth = /\bw-full\b/.test(origClass);
+                const isCentered = /\btext-center\b/.test(origClass);
 
                 sel.style.display = 'none';
 
@@ -4814,7 +4817,7 @@
 
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'st-dd-btn ' + origClass.replace(/w-full/g, '').trim();
+                btn.className = 'st-dd-btn ' + origClass.replace(/\bw-full\b/g, '').trim();
                 if (sel.title) btn.title = sel.title;
                 if (sel.disabled) btn.disabled = true;
 
