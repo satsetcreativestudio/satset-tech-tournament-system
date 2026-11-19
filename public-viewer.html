@@ -737,24 +737,49 @@
         }
 
         
+        function parseFlexiblePubDate(dateStr) {
+            if (!dateStr) return null;
+            const raw = String(dateStr).trim();
+            if (!raw || raw === '-') return null;
+            const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T|\s)/);
+            if (ymdMatch) {
+                const d = new Date(parseInt(ymdMatch[1], 10), parseInt(ymdMatch[2], 10) - 1, parseInt(ymdMatch[3], 10));
+                if (!isNaN(d.getTime())) return d;
+            }
+            const parsed = new Date(raw);
+            if (!isNaN(parsed.getTime())) return parsed;
+            return null;
+        }
+        function formatPubTime(timeStr) {
+            if (!timeStr) return '';
+            const raw = String(timeStr).trim();
+            if (!raw || raw === '-') return '';
+            const hmMatch = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+            if (hmMatch) {
+                return `${String(hmMatch[1]).padStart(2, '0')}:${hmMatch[2]}`;
+            }
+            if (/GMT|T\d{2}:\d{2}/.test(raw)) {
+                const d = new Date(raw);
+                if (!isNaN(d.getTime())) {
+                    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                }
+            }
+            return raw;
+        }
         function formatPubDayDate(dateStr) {
             if (!dateStr) return '';
             const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-            const parts = String(dateStr).split('-');
-            if (parts.length !== 3) return dateStr;
-            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            if (isNaN(d.getTime())) return dateStr;
-            return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
+            const d = parseFlexiblePubDate(dateStr);
+            if (!d) return String(dateStr);
+            return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
         function formatShortPubDayDate(dateStr) {
             if (!dateStr) return '';
             const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-            const parts = String(dateStr).split('-');
-            if (parts.length !== 3) return dateStr;
-            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            if (isNaN(d.getTime())) return dateStr;
+            const d = parseFlexiblePubDate(dateStr);
+            if (!d) return String(dateStr);
             return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
         }
         function getPubCourtVenue(c) {
@@ -778,7 +803,7 @@
                 const isLive = c.status === 'LIVE' && c.team1 && c.team1 !== '-';
                 const p = c.pending;
                 const pendDatePart = (p && p.oopDate) ? formatShortPubDayDate(p.oopDate) : '';
-                const pendTimePart = (p && p.oopTime) ? p.oopTime : '';
+                const pendTimePart = (p && p.oopTime) ? formatPubTime(p.oopTime) : '';
                 const pendSchedLabel = (pendDatePart || pendTimePart) ? `${pendDatePart}${pendDatePart && pendTimePart ? ' • ' : ''}${pendTimePart}` : '';
                 const pendingBoxHtml = (p && p.team1 && p.team2) ? `
                     <div class="mt-3 pt-2.5 border-t border-amber-500/30 bg-amber-500/10 rounded-xl p-2.5 space-y-1.5">
@@ -797,7 +822,7 @@
                 if (isLive) {
                     const sets = String(c.score || '0-0').split('/').map(s => s.trim());
                     const liveDatePart = c.oopDate ? formatShortPubDayDate(c.oopDate) : '';
-                    const liveTimePart = c.oopTime ? c.oopTime : '';
+                    const liveTimePart = c.oopTime ? formatPubTime(c.oopTime) : '';
                     const liveSchedLabel = (liveDatePart || liveTimePart) ? `${liveDatePart}${liveDatePart && liveTimePart ? ' • ' : ''}${liveTimePart}` : '';
                     return `
                         <div class="bg-slate-900 border-2 accent-border rounded-2xl p-5 shadow-xl shadow-[#ccff00]/5 flex flex-col justify-between relative overflow-hidden">
@@ -1052,7 +1077,7 @@
                                 const s1 = m.winNote === 'WO' ? (isP1Win ? 'WO' : '-') : `${m.s1_p1 || '-'}/${m.s2_p1 || '-'}`;
                                 const s2 = m.winNote === 'WO' ? (isP2Win ? 'WO' : '-') : `${m.s1_p2 || '-'}/${m.s2_p2 || '-'}`;
                                 const datePart = m.oopDate ? formatShortPubDayDate(m.oopDate) : '';
-                                const timePart = m.oopTime ? m.oopTime : '';
+                                const timePart = m.oopTime ? formatPubTime(m.oopTime) : '';
                                 const schedLabel = (datePart || timePart)
                                     ? `${datePart}${datePart && timePart ? ' • ' : ''}${timePart}`
                                     : 'Jadwal belum diatur';

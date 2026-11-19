@@ -965,24 +965,33 @@
         let completedMatchesResults = JSON.parse(safeGetLocal('satset_completed_results', '[]')) || [];
 
         
+        function parseFlexibleIndoDate(dateStr) {
+            if (!dateStr) return null;
+            const raw = String(dateStr).trim();
+            if (!raw || raw === '-') return null;
+            const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T|\s)/);
+            if (ymdMatch) {
+                const d = new Date(parseInt(ymdMatch[1], 10), parseInt(ymdMatch[2], 10) - 1, parseInt(ymdMatch[3], 10));
+                if (!isNaN(d.getTime())) return d;
+            }
+            const parsed = new Date(raw);
+            if (!isNaN(parsed.getTime())) return parsed;
+            return null;
+        }
         function formatIndoDayDate(dateStr) {
             if (!dateStr) return '-';
             const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-            const parts = String(dateStr).split('-');
-            if (parts.length !== 3) return dateStr;
-            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            if (isNaN(d.getTime())) return dateStr;
+            const d = parseFlexibleIndoDate(dateStr);
+            if (!d) return String(dateStr);
             return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
         function formatShortIndoDayDate(dateStr) {
             if (!dateStr) return '';
             const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-            const parts = String(dateStr).split('-');
-            if (parts.length !== 3) return dateStr;
-            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            if (isNaN(d.getTime())) return dateStr;
+            const d = parseFlexibleIndoDate(dateStr);
+            if (!d) return String(dateStr);
             return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
         }
         function getVenueList() {
