@@ -247,6 +247,34 @@
                     <span class="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-bold animate-pulse"><i class="ph-bold ph-circle text-[8px]"></i> LIVE VIEWER SYNCED</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="liveCourtsContainer"></div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 mt-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+                        <div>
+                            <h3 class="font-extrabold text-sm text-white flex items-center gap-2">
+                                <i class="ph-bold ph-timer accent-text"></i> Log Audit Durasi Pertandingan
+                            </h3>
+                            <p class="text-[11px] text-slate-400">Mencatat otomatis jam mulai (LIVE), jam selesai, dan durasi tiap partai.</p>
+                        </div>
+                        <button type="button" onclick="exportMatchDurationAuditCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                            <i class="ph-bold ph-download-simple accent-text"></i> Export Log CSV
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto max-h-60 overflow-y-auto rounded-xl border border-slate-800">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] sticky top-0">
+                                <tr>
+                                    <th class="p-2.5">Kelas & Partai</th>
+                                    <th class="p-2.5">Pertandingan</th>
+                                    <th class="p-2.5">Mulai</th>
+                                    <th class="p-2.5">Selesai</th>
+                                    <th class="p-2.5">Durasi</th>
+                                    <th class="p-2.5">Skor & Pemenang</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matchDurationAuditBody" class="divide-y divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <!-- TAB 2: DATA PESERTA -->
@@ -2794,6 +2822,69 @@
             refreshModalTimeOptions();
         }
 
+        function extractAthleteNamesFromMatch(match) {
+            if (!match) return [];
+            const names = [];
+            [match.player1, match.player2].forEach(team => {
+                if (!team || team.isBye) return;
+                const rawParts = [team.player1, team.player2].filter(Boolean);
+                const tokens = rawParts.length > 0 ? rawParts : String(team.name || '').split(/\s*[+&/]\s*/);
+                tokens.forEach(n => {
+                    const clean = String(n || '').replace(/\s+#\d+$/, '').trim().toLowerCase();
+                    if (clean && clean !== 'tbd' && !clean.startsWith('bye')) names.push(clean);
+                });
+            });
+            return [...new Set(names)];
+        }
+
+        function parseTimeToMinutes(timeStr) {
+            if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) return null;
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function getPlayerCrossClassConflicts(targetDate, targetTime, targetMatch, excludeRef, minRestMinutes = 45) {
+            const conflicts = [];
+            if (!targetDate || !targetTime || !targetMatch) return conflicts;
+            const targetMins = parseTimeToMinutes(targetTime);
+            if (targetMins === null) return conflicts;
+
+            const targetAthletes = extractAthleteNamesFromMatch(targetMatch);
+            if (targetAthletes.length === 0) return conflicts;
+
+            classesList.forEach(cls => {
+                const b = knockoutBracketData[cls];
+                if (!b || !Array.isArray(b.rounds)) return;
+                b.rounds.forEach((r, rIdx) => {
+                    r.matches.forEach((m, mIdx) => {
+                        if (m.player1?.isBye || m.player2?.isBye || m.winner) return;
+                        if (excludeRef && excludeRef.cls === cls && excludeRef.rIdx === rIdx && excludeRef.mIdx === mIdx) return;
+                        if (m.oopDate !== targetDate || !m.oopTime) return;
+
+                        const otherMins = parseTimeToMinutes(m.oopTime);
+                        if (otherMins === null) return;
+                        const diff = Math.abs(targetMins - otherMins);
+                        if (diff < minRestMinutes) {
+                            const otherAthletes = extractAthleteNamesFromMatch(m);
+                            const overlapped = targetAthletes.filter(a => otherAthletes.includes(a));
+                            if (overlapped.length > 0) {
+                                const cBadge = getMatchCourtBadgeInfo(cls, rIdx, mIdx);
+                                conflicts.push({
+                                    athletes: overlapped.map(n => n.toUpperCase()).join(', '),
+                                    cls,
+                                    nr: m.nr,
+                                    time: m.oopTime,
+                                    diff,
+                                    court: cBadge ? `Court ${cBadge.court}` : 'OOP'
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+            return conflicts;
+        }
+
         function validateModalTimeConflict(precomputedUsedMap = null) {
             const hourSel = document.getElementById('modal-oop-hour');
             const minSel = document.getElementById('modal-oop-minute');
@@ -2808,18 +2899,30 @@
             const dateVal = document.getElementById('modal-oop-date')?.value || '';
             const venueVal = document.getElementById('modal-oop-venue')?.value || getDefaultVenueName();
             const usedMap = precomputedUsedMap || getUsedTimesOnSameDay(dateVal, venueVal, activeMatchRef);
-            const conflicts = usedMap[fullTime] || [];
+            const slotConflicts = usedMap[fullTime] || [];
+
+            const curMatch = activeMatchRef ? knockoutBracketData[activeMatchRef.cls]?.rounds[activeMatchRef.rIdx]?.matches[activeMatchRef.mIdx] : null;
+            const playerConflicts = getPlayerCrossClassConflicts(dateVal, fullTime, curMatch, activeMatchRef, 45);
+
+            const messages = [];
+            if (slotConflicts.length > 0) {
+                const detailList = slotConflicts.map(c => `<strong>${escapeHtml(c.cls)} #${c.nr}</strong> (${escapeHtml(c.court)})`).join(', ');
+                messages.push(`<strong>Jam Slot Terisi (${fullTime}):</strong> Sudah dipakai oleh ${detailList}.`);
+            }
+            if (playerConflicts.length > 0) {
+                const pList = playerConflicts.map(p => `<strong>${escapeHtml(p.athletes)}</strong> main di <strong>${escapeHtml(p.cls)} #${p.nr}</strong> pukul ${p.time} (${p.diff === 0 ? 'Bentrok Langsung' : 'Jeda ' + p.diff + ' mnt'})`).join('; ');
+                messages.push(`<strong>Bentrok Atlet Rangkap Lintas Kelas:</strong> ${pList}.`);
+            }
 
             if (conflictBox && conflictText) {
-                if (conflicts.length > 0) {
-                    const detailList = conflicts.map(c => `<strong>${escapeHtml(c.cls)} #${c.nr}</strong> (${escapeHtml(c.court)})`).join(', ');
-                    conflictText.innerHTML = `<strong>Jam Bentrok (${fullTime}):</strong> Sudah dipakai oleh ${detailList} pada tanggal & GOR yang sama.`;
+                if (messages.length > 0) {
+                    conflictText.innerHTML = messages.join('<br>');
                     conflictBox.classList.remove('hidden');
                 } else {
                     conflictBox.classList.add('hidden');
                 }
             }
-            return conflicts;
+            return [...slotConflicts, ...playerConflicts];
         }
 
         function buildInlineOOPTimeSelects(cls, rIdx, mIdx, currentTime) {
@@ -2932,8 +3035,8 @@
             if (!activeMatchRef) return;
             const conflicts = validateModalTimeConflict();
             if (conflicts.length > 0) {
-                const info = conflicts.map(c => `${c.cls} #${c.nr} (${c.court})`).join(', ');
-                const proceed = confirm(`PERINGATAN JADWAL BENTROK!\n\nJam ${document.getElementById('modal-oop-time').value} sudah digunakan oleh: ${info}.\n\nTetap simpan jadwal dengan jam yang sama?`);
+                const info = conflicts.map(c => c.athletes ? `${c.athletes} di ${c.cls} #${c.nr} (${c.time})` : `${c.cls} #${c.nr} (${c.court})`).join(', ');
+                const proceed = confirm(`PERINGATAN JADWAL BENTROK!\n\nKonflik terdeteksi pada jam ${document.getElementById('modal-oop-time').value}: ${info}.\n\nTetap simpan jadwal dengan jam yang sama?`);
                 if (!proceed) return;
             }
             const { cls, rIdx, mIdx } = activeMatchRef;
@@ -2966,9 +3069,18 @@
                     slot.pending = newRef;
                 } else if (assignMode === 'LIVE') {
                     slot.active = newRef;
+                    if (!match.startedAt) {
+                        match.startedAt = Date.now();
+                        match.startedTimeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    }
                 } else {
-                    if (!slot.active) slot.active = newRef;
-                    else slot.pending = newRef;
+                    if (!slot.active) {
+                        slot.active = newRef;
+                        if (!match.startedAt) {
+                            match.startedAt = Date.now();
+                            match.startedTimeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                        }
+                    } else slot.pending = newRef;
                 }
                 courtAssignments[selectedCourt] = slot;
             }
@@ -2978,6 +3090,11 @@
         function promotePendingToLive(courtNum) {
             const slot = normalizeCourtSlot(courtAssignments[courtNum]);
             if (!slot.pending) return;
+            const promotedMatch = knockoutBracketData[slot.pending.cls]?.rounds[slot.pending.rIdx]?.matches[slot.pending.mIdx];
+            if (promotedMatch && !promotedMatch.startedAt) {
+                promotedMatch.startedAt = Date.now();
+                promotedMatch.startedTimeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            }
             slot.active = slot.pending;
             slot.pending = null;
             courtAssignments[courtNum] = slot;
@@ -3021,10 +3138,15 @@
                 activeLinesmen.length > 0 ? `Linesman: ${activeLinesmen.join(', ')}` : ''
             ].filter(Boolean).join(' | ');
 
+            const finishedNow = Date.now();
+            const finishedTimeStr = new Date(finishedNow).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const durationMinutes = match.startedAt ? Math.max(1, Math.round((finishedNow - match.startedAt) / 60000)) : null;
+            const durationLabel = durationMinutes ? `${durationMinutes} mnt` : '-';
+
             const resultId = `${cls}_M${match.nr}`;
             const resultEntry = {
                 resultId,
-                finishedAt: `${formatIndoDayDate(new Date().toISOString().split('T')[0])} • ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+                finishedAt: `${formatIndoDayDate(new Date().toISOString().split('T')[0])} • ${finishedTimeStr}`,
                 className: cls,
                 matchNr: `#${match.nr}`,
                 roundLabel: match.roundLabel || '',
@@ -3033,7 +3155,11 @@
                 score: scoreSummary,
                 winner: `${match.winner.name}${match.winner.club ? ' (' + match.winner.club + ')' : ''}`,
                 winNote: winType,
-                officials: officialsStr
+                officials: officialsStr,
+                startedTime: match.startedTimeStr || '-',
+                finishedTime: finishedTimeStr,
+                durationMinutes,
+                durationLabel
             };
             const existingIdx = completedMatchesResults.findIndex(r => r.resultId === resultId);
             if (existingIdx >= 0) completedMatchesResults[existingIdx] = resultEntry;
@@ -3167,6 +3293,39 @@
                         </div>`;
                 }
             }
+                    renderMatchDurationAuditLog();
+        }
+
+        function renderMatchDurationAuditLog() {
+            const tbody = document.getElementById('matchDurationAuditBody');
+            if (!tbody) return;
+            if (!completedMatchesResults || completedMatchesResults.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-slate-500">Belum ada riwayat pertandingan selesai.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = completedMatchesResults.map(r => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-2.5"><span class="accent-text font-extrabold">${escapeHtml(r.className)}</span> <span class="font-mono text-slate-400">${escapeHtml(r.matchNr)}</span></td>
+                    <td class="p-2.5 text-slate-200">${escapeHtml(r.team1)} <span class="text-slate-500">vs</span> ${escapeHtml(r.team2)}</td>
+                    <td class="p-2.5 font-mono text-slate-300">${escapeHtml(r.startedTime || '-')}</td>
+                    <td class="p-2.5 font-mono text-slate-300">${escapeHtml(r.finishedTime || '-')}</td>
+                    <td class="p-2.5"><span class="bg-sky-500/15 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded font-mono font-bold text-[11px]">${escapeHtml(r.durationLabel || '-')}</span></td>
+                    <td class="p-2.5"><span class="font-bold text-emerald-400">${escapeHtml(r.winner)}</span> <span class="font-mono text-slate-400">(${escapeHtml(r.score)})</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function exportMatchDurationAuditCSV() {
+            if (!completedMatchesResults || completedMatchesResults.length === 0) return alert('Belum ada data log durasi.');
+            const rows = [['Kelas', 'No_Partai', 'Team_1', 'Team_2', 'Mulai', 'Selesai', 'Durasi', 'Skor', 'Pemenang']];
+            completedMatchesResults.forEach(r => {
+                rows.push([r.className, r.matchNr, r.team1, r.team2, r.startedTime || '-', r.finishedTime || '-', r.durationLabel || '-', r.score, r.winner].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
+            });
+            const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `AUDIT_DURASI_PERTANDINGAN_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
         }
 
         let roundRobinGroupsData = JSON.parse(safeGetLocal('satset_roundrobin_groups', '{}'));

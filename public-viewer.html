@@ -118,6 +118,23 @@
         ::-webkit-scrollbar-track { background: #0b0f17; }
         ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+
+        @keyframes sponsorMarqueeRight {
+            0% { transform: translate3d(-50%, 0, 0); }
+            100% { transform: translate3d(0%, 0, 0); }
+        }
+        .sponsor-marquee-track {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            justify-content: flex-start !important;
+            align-items: center;
+            width: max-content !important;
+            will-change: transform;
+            animation: sponsorMarqueeRight var(--marquee-duration, 24s) linear infinite;
+        }
+        .sponsor-marquee-track:hover {
+            animation-play-state: paused;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -175,6 +192,9 @@
                 <button type="button" onclick="toggleTVMode()" id="tvModeBtn" class="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition" title="Tampilan Layar TV GOR">
                     <i class="ph-bold ph-television accent-text"></i> <span class="hidden md:inline">Mode TV GOR</span>
                 </button>
+                <button type="button" onclick="toggleTVAutoScroll()" id="tvAutoScrollBtn" class="hidden bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition" title="Gulir Otomatis Layar TV">
+                    <i class="ph-bold ph-arrows-down-up accent-text"></i> <span id="tvAutoScrollLabel">Auto-Scroll: ON</span>
+                </button>
                 <button type="button" id="gearSetupBtn" onclick="openUrlConfigModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 p-2 rounded-xl text-xs transition" title="Atur URL Google Sheets">
                     <i class="ph-bold ph-gear text-sm"></i>
                 </button>
@@ -229,6 +249,22 @@
 
         <!-- SECTION 1: LIVE COURTS -->
         <section id="psec-courts" class="space-y-5">
+            <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-lg">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-2">
+                        <i class="ph-bold ph-magnifying-glass accent-text text-lg"></i>
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-extrabold text-white">Cari Jadwal & Partai Saya</h3>
+                            <p class="text-[11px] text-slate-400">Ketik nama atlet atau klub untuk melacak nomor lapangan, jam tanding, dan skor Anda.</p>
+                        </div>
+                    </div>
+                    <div class="relative w-full sm:w-80">
+                        <input type="text" id="myScheduleSearchInput" oninput="renderMyAthleteSchedule()" placeholder="Ketik nama atlet / klub (min. 2 huruf)..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-8 py-2 text-xs text-white focus:outline-none focus:border-[#ccff00]">
+                        <button type="button" onclick="document.getElementById('myScheduleSearchInput').value=''; renderMyAthleteSchedule();" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"><i class="ph-bold ph-x"></i></button>
+                    </div>
+                </div>
+                <div id="myScheduleResultsBox" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t border-slate-800"></div>
+            </div>
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h2 class="text-lg sm:text-xl font-black text-white tracking-wide flex items-center gap-2">
@@ -440,9 +476,11 @@
 
     <!-- SPONSORS & PARTNERS SECTION -->
     <section id="pubSponsorsSection" class="hidden max-w-7xl w-full mx-auto px-4 sm:px-6 pb-6">
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 overflow-hidden">
             <p class="text-center text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Didukung Oleh Sponsor & Partner Resmi</p>
-            <div id="pubSponsorsGrid" class="flex flex-wrap items-center justify-center gap-4 sm:gap-6"></div>
+            <div id="pubSponsorsViewport" class="w-full overflow-hidden">
+                <div id="pubSponsorsGrid" class="flex items-center justify-center gap-4 sm:gap-6"></div>
+            </div>
         </div>
     </section>
 
@@ -452,7 +490,9 @@
             <span class="text-[10px] font-black uppercase tracking-widest accent-text shrink-0 flex items-center gap-1.5">
                 <i class="ph-bold ph-handshake"></i> Official Partners
             </span>
-            <div id="tvSponsorBarGrid" class="flex-1 flex flex-wrap items-center justify-center gap-4 sm:gap-6 overflow-hidden"></div>
+            <div id="tvSponsorBarViewport" class="flex-1 min-w-0 overflow-hidden">
+                <div id="tvSponsorBarGrid" class="flex items-center justify-center gap-4 sm:gap-6"></div>
+            </div>
         </div>
     </div>
 
@@ -732,6 +772,7 @@
             renderPublicBracket();
             renderPublicResults();
             renderPublicClubLeaderboard();
+            renderMyAthleteSchedule();
             applyPublicThemeAndBranding();
             applyPublicRegFieldConfig();
         }
@@ -1349,18 +1390,25 @@
             isTVMode = !isTVMode;
             const nav = document.getElementById('publicNavBar');
             const btn = document.getElementById('tvModeBtn');
+            const autoBtn = document.getElementById('tvAutoScrollBtn');
             if (isTVMode) {
                 switchPublicTab('courts');
                 nav.classList.add('hidden');
                 btn.classList.add('border-[#ccff00]', 'bg-[#ccff00]/10');
+                if (autoBtn) autoBtn.classList.remove('hidden');
                 syncTVSponsorBarVisibility();
+                refreshAllSponsorMarquees();
+                if (isTVAutoScrollActive) startTVAutoScrollLoop();
                 if (document.documentElement.requestFullscreen) {
                     document.documentElement.requestFullscreen().catch(() => {});
                 }
             } else {
                 nav.classList.remove('hidden');
                 btn.classList.remove('border-[#ccff00]', 'bg-[#ccff00]/10');
+                if (autoBtn) autoBtn.classList.add('hidden');
+                stopTVAutoScrollLoop();
                 syncTVSponsorBarVisibility();
+                refreshAllSponsorMarquees();
                 if (document.fullscreenElement && document.exitFullscreen) {
                     document.exitFullscreen().catch(() => {});
                 }
@@ -1478,33 +1526,45 @@
                 switchPublicTab(firstVis);
             }
 
-            // Sponsors Section (Normal View + TV GOR Sticky Bar)
+            // Sponsors Section (Normal View + TV GOR Sticky Bar) - Diam jika sedikit, Running ke kanan & Loop jika banyak
             const spSec = document.getElementById('pubSponsorsSection');
+            const spViewport = document.getElementById('pubSponsorsViewport');
             const spGrid = document.getElementById('pubSponsorsGrid');
+            const tvBarViewport = document.getElementById('tvSponsorBarViewport');
             const tvBarGrid = document.getElementById('tvSponsorBarGrid');
             const sponsors = Array.isArray(tournamentData.sponsorsList) ? tournamentData.sponsorsList.filter(s => s && s.logoData) : [];
+
+            const mainCardsHtml = sponsors.map(sp => `
+                <div class="bg-slate-950/90 border border-slate-800 rounded-xl px-4 py-2.5 flex flex-col items-center justify-center gap-1 shrink-0">
+                    <img src="${sp.logoData}" alt="${escapeHtml(sp.name || 'Sponsor')}" class="h-10 sm:h-12 w-auto max-w-[140px] object-contain">
+                    ${sp.tier ? `<span class="text-[9px] text-slate-400 font-semibold whitespace-nowrap">${escapeHtml(sp.tier)}</span>` : ''}
+                </div>
+            `).join('');
+
+            const tvCardsHtml = sponsors.map(sp => `
+                <div class="bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-2 shrink-0">
+                    <img src="${sp.logoData}" alt="${escapeHtml(sp.name || 'Sponsor')}" class="h-8 w-auto max-w-[120px] object-contain">
+                    ${sp.tier ? `<span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">${escapeHtml(sp.tier)}</span>` : ''}
+                </div>
+            `).join('');
+
             if (spSec && spGrid) {
                 if (sponsors.length === 0) {
                     spSec.classList.add('hidden');
                 } else {
                     spSec.classList.remove('hidden');
-                    spGrid.innerHTML = sponsors.map(sp => `
-                        <div class="bg-slate-950/90 border border-slate-800 rounded-xl px-4 py-2.5 flex flex-col items-center justify-center gap-1">
-                            <img src="${sp.logoData}" alt="${escapeHtml(sp.name || 'Sponsor')}" class="h-10 sm:h-12 w-auto max-w-[140px] object-contain">
-                            ${sp.tier ? `<span class="text-[9px] text-slate-400 font-semibold">${escapeHtml(sp.tier)}</span>` : ''}
-                        </div>
-                    `).join('');
+                    applyAdaptiveSponsorMarquee(spViewport, spGrid, mainCardsHtml);
                 }
             }
-            if (tvBarGrid) {
-                tvBarGrid.innerHTML = sponsors.map(sp => `
-                    <div class="bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-2 shrink-0">
-                        <img src="${sp.logoData}" alt="${escapeHtml(sp.name || 'Sponsor')}" class="h-8 w-auto max-w-[120px] object-contain">
-                        ${sp.tier ? `<span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">${escapeHtml(sp.tier)}</span>` : ''}
-                    </div>
-                `).join('');
-            }
             syncTVSponsorBarVisibility();
+            if (tvBarGrid) {
+                if (sponsors.length === 0) {
+                    tvBarGrid.innerHTML = '';
+                    tvBarGrid.classList.remove('sponsor-marquee-track');
+                } else {
+                    applyAdaptiveSponsorMarquee(tvBarViewport, tvBarGrid, tvCardsHtml);
+                }
+            }
 
             // Agency Footer
             const ag = tournamentData.agencyConfig || {};
@@ -1620,6 +1680,207 @@
     </style>
     <div id="satsetSmartTooltip" role="tooltip"></div>
     <script>
+        function applyAdaptiveSponsorMarquee(viewportEl, trackEl, singleSetHtml) {
+            if (!viewportEl || !trackEl) return;
+            trackEl.classList.remove('sponsor-marquee-track');
+            trackEl.style.removeProperty('--marquee-duration');
+            trackEl.className = 'flex flex-nowrap items-center justify-center gap-4 sm:gap-6 w-max mx-auto';
+            trackEl.innerHTML = singleSetHtml;
+
+            const evaluateOverflow = () => {
+                if (!viewportEl || !trackEl) return;
+                const vpWidth = viewportEl.clientWidth;
+                if (vpWidth <= 0) return;
+
+                trackEl.classList.remove('sponsor-marquee-track');
+                trackEl.style.removeProperty('--marquee-duration');
+                trackEl.className = 'flex flex-nowrap items-center justify-center gap-4 sm:gap-6 w-max mx-auto';
+                trackEl.innerHTML = singleSetHtml;
+                const singleWidth = trackEl.scrollWidth;
+
+                if (singleWidth > vpWidth) {
+                    trackEl.className = 'flex flex-nowrap items-center gap-4 sm:gap-6 pr-4 sm:pr-6 sponsor-marquee-track';
+                    trackEl.innerHTML = singleSetHtml + singleSetHtml;
+                    const durationSec = Math.max(12, Math.round(singleWidth / 50));
+                    trackEl.style.setProperty('--marquee-duration', durationSec + 's');
+                } else {
+                    trackEl.className = 'flex flex-nowrap items-center justify-center gap-4 sm:gap-6 w-max mx-auto';
+                    trackEl.innerHTML = singleSetHtml;
+                }
+            };
+
+            requestAnimationFrame(() => {
+                evaluateOverflow();
+                trackEl.querySelectorAll('img').forEach(img => {
+                    if (!img.complete) {
+                        img.addEventListener('load', evaluateOverflow, { once: true });
+                    }
+                });
+            });
+        }
+
+        function refreshAllSponsorMarquees() {
+            const sponsors = Array.isArray(tournamentData.sponsorsList) ? tournamentData.sponsorsList.filter(s => s && s.logoData) : [];
+            if (sponsors.length === 0) return;
+            const mainCardsHtml = sponsors.map(sp => `
+                <div class="bg-slate-950/90 border border-slate-800 rounded-xl px-4 py-2.5 flex flex-col items-center justify-center gap-1 shrink-0">
+                    <img src="${sp.logoData}" alt="${escapeHtml(sp.name || 'Sponsor')}" class="h-10 sm:h-12 w-auto max-w-[140px] object-contain">
+                    ${sp.tier ? `<span class="text-[9px] text-slate-400 font-semibold whitespace-nowrap">${escapeHtml(sp.tier)}</span>` : ''}
+                </div>
+            `).join('');
+            const tvCardsHtml = sponsors.map(sp => `
+                <div class="bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-2 shrink-0">
+                    <img src="${sp.logoData}" alt="${escapeHtml(sp.name || 'Sponsor')}" class="h-8 w-auto max-w-[120px] object-contain">
+                    ${sp.tier ? `<span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">${escapeHtml(sp.tier)}</span>` : ''}
+                </div>
+            `).join('');
+            applyAdaptiveSponsorMarquee(document.getElementById('pubSponsorsViewport'), document.getElementById('pubSponsorsGrid'), mainCardsHtml);
+            if (isTVMode) {
+                applyAdaptiveSponsorMarquee(document.getElementById('tvSponsorBarViewport'), document.getElementById('tvSponsorBarGrid'), tvCardsHtml);
+            }
+        }
+
+        let sponsorResizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(sponsorResizeTimer);
+            sponsorResizeTimer = setTimeout(refreshAllSponsorMarquees, 150);
+        });
+
+        function renderMyAthleteSchedule() {
+            const inp = document.getElementById('myScheduleSearchInput');
+            const box = document.getElementById('myScheduleResultsBox');
+            if (!inp || !box) return;
+            const q = inp.value.trim().toLowerCase();
+            if (q.length < 2) {
+                box.classList.add('hidden');
+                box.innerHTML = '';
+                return;
+            }
+
+            const matchesFound = [];
+            (tournamentData.courts || []).forEach(c => {
+                if (c.status === 'LIVE' && (String(c.team1).toLowerCase().includes(q) || String(c.team2).toLowerCase().includes(q))) {
+                    matchesFound.push({
+                        badge: `LIVE • COURT ${c.court}`,
+                        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+                        cls: c.className || '',
+                        nr: c.matchNr || '',
+                        teams: `${c.team1} vs ${c.team2}`,
+                        info: `${getPubCourtVenue(c)} • Skor: ${c.score || '0-0'}`
+                    });
+                }
+                if (c.pending && (String(c.pending.team1).toLowerCase().includes(q) || String(c.pending.team2).toLowerCase().includes(q))) {
+                    matchesFound.push({
+                        badge: `NEXT • COURT ${c.court}`,
+                        badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                        cls: c.pending.className || '',
+                        nr: c.pending.matchNr || '',
+                        teams: `${c.pending.team1} vs ${c.pending.team2}`,
+                        info: `${formatShortPubDayDate(c.pending.oopDate)} ${formatPubTime(c.pending.oopTime)} • Bersiap masuk lapangan`
+                    });
+                }
+            });
+
+            const bMap = tournamentData.brackets || {};
+            Object.keys(bMap).forEach(cls => {
+                const br = bMap[cls];
+                if (!br || !Array.isArray(br.rounds)) return;
+                br.rounds.forEach(r => {
+                    (r.matches || []).forEach(m => {
+                        if (m.winner || m.player1?.isBye || m.player2?.isBye) return;
+                        const p1Str = m.player1 ? `${m.player1.name} (${m.player1.club || ''})` : 'TBD';
+                        const p2Str = m.player2 ? `${m.player2.name} (${m.player2.club || ''})` : 'TBD';
+                        if (p1Str.toLowerCase().includes(q) || p2Str.toLowerCase().includes(q)) {
+                            matchesFound.push({
+                                badge: `TERJADWAL • ${m.roundLabel || ''}`,
+                                badgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+                                cls,
+                                nr: `#${m.nr}`,
+                                teams: `${p1Str} vs ${p2Str}`,
+                                info: `${formatShortPubDayDate(m.oopDate) || 'Tanggal menyusul'} ${formatPubTime(m.oopTime) || ''} • ${m.oopVenue || tournamentData.venueLocation || ''}`
+                            });
+                        }
+                    });
+                });
+            });
+
+            (tournamentData.results || []).forEach(res => {
+                if (String(res.team1).toLowerCase().includes(q) || String(res.team2).toLowerCase().includes(q)) {
+                    matchesFound.push({
+                        badge: `SELESAI • ${res.durationLabel ? res.durationLabel : 'FINAL'}`,
+                        badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                        cls: res.className || '',
+                        nr: res.matchNr || '',
+                        teams: `${res.team1} vs ${res.team2}`,
+                        info: `Skor: ${res.score} • Pemenang: ${res.winner}`
+                    });
+                }
+            });
+
+            box.classList.remove('hidden');
+            if (matchesFound.length === 0) {
+                box.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-slate-400">Tidak ditemukan jadwal untuk kata kunci "<strong>${escapeHtml(inp.value)}</strong>".</div>`;
+                return;
+            }
+            box.innerHTML = matchesFound.map(item => `
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[10px] font-black px-2 py-0.5 rounded border ${item.badgeClass}">${escapeHtml(item.badge)}</span>
+                        <span class="text-[10px] font-mono accent-text font-bold">${escapeHtml(item.cls)} ${escapeHtml(item.nr)}</span>
+                    </div>
+                    <p class="text-xs font-bold text-white leading-snug">${escapeHtml(item.teams)}</p>
+                    <p class="text-[11px] text-slate-400">${escapeHtml(item.info)}</p>
+                </div>
+            `).join('');
+        }
+
+        let isTVAutoScrollActive = true;
+        let tvScrollRafId = null;
+        let tvScrollPausedUntil = 0;
+
+        function toggleTVAutoScroll() {
+            isTVAutoScrollActive = !isTVAutoScrollActive;
+            const lbl = document.getElementById('tvAutoScrollLabel');
+            if (lbl) lbl.innerText = isTVAutoScrollActive ? 'Auto-Scroll: ON' : 'Auto-Scroll: OFF';
+            if (isTVAutoScrollActive && isTVMode) startTVAutoScrollLoop();
+            else stopTVAutoScrollLoop();
+        }
+
+        function startTVAutoScrollLoop() {
+            stopTVAutoScrollLoop();
+            let direction = 1;
+            function step() {
+                if (!isTVMode || !isTVAutoScrollActive) return;
+                const now = Date.now();
+                if (now >= tvScrollPausedUntil) {
+                    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                    if (maxScroll > 20) {
+                        window.scrollBy(0, 0.65 * direction);
+                        if (direction === 1 && window.scrollY >= maxScroll - 2) {
+                            direction = -1;
+                            tvScrollPausedUntil = now + 2500;
+                        } else if (direction === -1 && window.scrollY <= 2) {
+                            direction = 1;
+                            tvScrollPausedUntil = now + 2500;
+                        }
+                    }
+                }
+                tvScrollRafId = requestAnimationFrame(step);
+            }
+            tvScrollRafId = requestAnimationFrame(step);
+        }
+
+        function stopTVAutoScrollLoop() {
+            if (tvScrollRafId) cancelAnimationFrame(tvScrollRafId);
+            tvScrollRafId = null;
+        }
+
+        ['mouseenter', 'touchstart', 'wheel'].forEach(evt => {
+            window.addEventListener(evt, () => {
+                if (isTVMode) tvScrollPausedUntil = Date.now() + 4000;
+            }, { passive: true });
+        });
+
         (function initSatsetSmartTooltips() {
             const tt = document.getElementById('satsetSmartTooltip');
             if (!tt) return;

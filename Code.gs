@@ -1,6 +1,8 @@
 /**
- * SATSET TECH - Badminton Tournament Manager Backend (Code.gs v10)
- * Kompatibel dengan index.html (Admin) & public-viewer.html (Public Viewer + Registrasi + Hasil Pertandingan)
+ * SATSET TECH - Badminton Tournament Manager Backend (Code.gs v10.2)
+ * Kompatibel dengan index.html (Admin), public-viewer.html (Public Viewer + Registrasi + Hasil), & promotion.html
+ * Update v10.1: Penyimpanan dedicated sheet _BRANDING untuk mencegah error limit 50.000 karakter sel Google Sheets
+ * saat upload Favicon (icon.png), OG Banner (og-banner.png), Logo, & Watermark.
  */
 
 const CONFIG_SHEET = '_CONFIG';
@@ -9,6 +11,7 @@ const REG_SHEET = '_PENDAFTARAN';
 const RESULTS_SHEET = '_HASIL_PERTANDINGAN';
 const BRACKET_SHEET = '_BAGAN_JSON';
 const SPONSORS_SHEET = '_SPONSORS';
+const BRANDING_SHEET = '_BRANDING';
 
 const DEFAULT_USER = 'admin';
 const DEFAULT_PASS = 'admin2026';
@@ -127,7 +130,7 @@ function doGet(e) {
   const results = [];
   const resSheet = ss.getSheetByName(RESULTS_SHEET);
   if (resSheet && resSheet.getLastRow() > 1) {
-    const numResCols = Math.max(resSheet.getLastColumn(), 11);
+    const numResCols = Math.max(resSheet.getLastColumn(), 14);
     const resRows = resSheet.getRange(2, 1, resSheet.getLastRow() - 1, numResCols).getValues();
     resRows.forEach(r => {
       if (r[0]) {
@@ -142,7 +145,10 @@ function doGet(e) {
           score: String(r[7]),
           winner: String(r[8]),
           winNote: String(r[9] || 'NORMAL'),
-          officials: String(r[10] || '')
+          officials: String(r[10] || ''),
+          startedTime: String(r[11] || ''),
+          finishedTime: String(r[12] || ''),
+          durationLabel: String(r[13] || '')
         });
       }
     });
@@ -285,14 +291,15 @@ function doPost(e) {
         let resSheet = ss.getSheetByName(RESULTS_SHEET);
         if (!resSheet) resSheet = ss.insertSheet(RESULTS_SHEET);
         resSheet.clear();
-        resSheet.appendRow(['Result ID', 'Waktu Selesai', 'Kelas', 'No Partai', 'Babak', 'Team 1', 'Team 2', 'Skor', 'Pemenang', 'Keterangan', 'Perangkat Pertandingan']);
-        resSheet.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#0b0f17').setFontColor('#ccff00');
+        resSheet.appendRow(['Result ID', 'Waktu Selesai', 'Kelas', 'No Partai', 'Babak', 'Team 1', 'Team 2', 'Skor', 'Pemenang', 'Keterangan', 'Perangkat Pertandingan', 'Mulai', 'Selesai', 'Durasi']);
+        resSheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#0b0f17').setFontColor('#ccff00');
         if (payload.results.length > 0) {
           const rRows = payload.results.map(r => [
             r.resultId || '', r.finishedAt || '', r.className || '', r.matchNr || '', r.roundLabel || '',
-            r.team1 || '', r.team2 || '', r.score || '', r.winner || '', r.winNote || 'NORMAL', r.officials || ''
+            r.team1 || '', r.team2 || '', r.score || '', r.winner || '', r.winNote || 'NORMAL', r.officials || '',
+            r.startedTime || '', r.finishedTime || '', r.durationLabel || ''
           ]);
-          resSheet.getRange(2, 1, rRows.length, 11).setValues(rRows);
+          resSheet.getRange(2, 1, rRows.length, 14).setValues(rRows);
         }
       }
 
@@ -430,8 +437,12 @@ function getConfigMeta(ss) {
       if (r[0] === 'paymentInfo') meta.paymentInfo = r[1];
       if (r[0] === 'adminContacts' && r[1]) { try { meta.adminContacts = JSON.parse(r[1]); } catch (e) {} }
       if (r[0] === 'themeConfig' && r[1]) { try { meta.themeConfig = JSON.parse(r[1]); } catch (e) {} }
-      if (r[0] === 'brandingConfig' && r[1]) { try { meta.brandingConfig = JSON.parse(r[1]); } catch (e) {} }
-      if (r[0] === 'sponsorsList' && r[1]) { try { meta.sponsorsList = JSON.parse(r[1]); } catch (e) {} }
+      if (r[0] === 'brandingConfig' && r[1] && r[1] !== ('STORED_IN_' + BRANDING_SHEET)) {
+        try { meta.brandingConfig = JSON.parse(r[1]); } catch (e) {}
+      }
+      if (r[0] === 'sponsorsList' && r[1] && r[1] !== ('STORED_IN_' + SPONSORS_SHEET)) {
+        try { meta.sponsorsList = JSON.parse(r[1]); } catch (e) {}
+      }
       if (r[0] === 'publicTabsConfig' && r[1]) { try { meta.publicTabsConfig = JSON.parse(r[1]); } catch (e) {} }
       if (r[0] === 'announcementText') meta.announcementText = String(r[1] || '');
       if (r[0] === 'waPromoTemplate') meta.waPromoTemplate = String(r[1] || '');
@@ -446,6 +457,25 @@ function getConfigMeta(ss) {
       }
     });
   }
+
+  // Load dedicated _BRANDING sheet (supports large base64 icon.png, og-banner.png, logoData, watermarkData per row)
+  const brSheet = ss.getSheetByName(BRANDING_SHEET);
+  if (brSheet && brSheet.getLastRow() > 1) {
+    const brRows = brSheet.getRange(2, 1, brSheet.getLastRow() - 1, 2).getValues();
+    const loadedBranding = meta.brandingConfig && typeof meta.brandingConfig === 'object' ? Object.assign({}, meta.brandingConfig) : {};
+    brRows.forEach(br => {
+      const k = String(br[0] || '');
+      const v = br[1];
+      if (!k) return;
+      if (typeof v === 'string' && (v.startsWith('{') || v.startsWith('[') || v === 'true' || v === 'false' || v === 'null')) {
+        try { loadedBranding[k] = JSON.parse(v); } catch (e) { loadedBranding[k] = v; }
+      } else {
+        loadedBranding[k] = v;
+      }
+    });
+    meta.brandingConfig = loadedBranding;
+  }
+
   const spSheet = ss.getSheetByName(SPONSORS_SHEET);
   if (spSheet && spSheet.getLastRow() > 1) {
     const spRows = spSheet.getRange(2, 1, spSheet.getLastRow() - 1, 4).getValues();
@@ -484,15 +514,27 @@ function setConfigMeta(ss, meta) {
   sheet.appendRow(['paymentInfo', meta.paymentInfo || '']);
   sheet.appendRow(['adminContacts', JSON.stringify(meta.adminContacts || existing.adminContacts || [])]);
   sheet.appendRow(['themeConfig', JSON.stringify(meta.themeConfig !== undefined ? meta.themeConfig : (existing.themeConfig || null))]);
-  var brandingToSave = meta.brandingConfig !== undefined ? meta.brandingConfig : (existing.brandingConfig || null);
-  var brandingJson = JSON.stringify(brandingToSave);
-  if (brandingJson.length > 48000 && brandingToSave && typeof brandingToSave === 'object') {
-    var trimmedBranding = Object.assign({}, brandingToSave);
-    if (JSON.stringify(trimmedBranding).length > 48000) delete trimmedBranding.watermarkData;
-    if (JSON.stringify(trimmedBranding).length > 48000) delete trimmedBranding.bannerData;
-    brandingJson = JSON.stringify(trimmedBranding);
+
+  // Save brandingConfig per-key into dedicated _BRANDING sheet so each asset (favicon, OG banner, logo, watermark) gets its own 50k-char cell budget
+  const brandingToSave = meta.brandingConfig !== undefined ? meta.brandingConfig : (existing.brandingConfig || null);
+  let brSheet = ss.getSheetByName(BRANDING_SHEET);
+  if (!brSheet) brSheet = ss.insertSheet(BRANDING_SHEET);
+  brSheet.clear();
+  brSheet.appendRow(['BrandingKey', 'BrandingValue']);
+  brSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#0b0f17').setFontColor('#ccff00');
+  if (brandingToSave && typeof brandingToSave === 'object') {
+    const brKeys = Object.keys(brandingToSave);
+    if (brKeys.length > 0) {
+      const brRows = brKeys.map(k => {
+        const val = brandingToSave[k];
+        const serialized = (val !== null && typeof val === 'object') ? JSON.stringify(val) : (val === undefined ? '' : val);
+        return [k, typeof serialized === 'string' && serialized.length > 49500 ? serialized.slice(0, 49500) : serialized];
+      });
+      brSheet.getRange(2, 1, brRows.length, 2).setValues(brRows);
+    }
   }
-  sheet.appendRow(['brandingConfig', brandingJson]);
+  sheet.appendRow(['brandingConfig', 'STORED_IN_' + BRANDING_SHEET]);
+
   const sponsorsToSave = meta.sponsorsList !== undefined ? meta.sponsorsList : (existing.sponsorsList || []);
   let spSheet = ss.getSheetByName(SPONSORS_SHEET);
   if (!spSheet) spSheet = ss.insertSheet(SPONSORS_SHEET);
