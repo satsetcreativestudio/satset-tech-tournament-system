@@ -244,11 +244,11 @@
                 </div>
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div><h2 class="text-xl font-black text-white tracking-wide">LIVE COURT MONITOR</h2><p class="text-slate-400 text-xs">Tugaskan partai dari Bagan atau OOP ke nomor lapangan mana pun.</p></div>
-                    <div class="flex flex-wrap items-center gap-2.5">
-                        <button type="button" onclick="openCallAthleteModal()" class="accent-bg hover:brightness-95 text-slate-950 font-extrabold px-3.5 py-1.5 rounded-full text-xs flex items-center gap-1.5 shadow-lg shadow-[#ccff00]/15 transition">
+                    <div class="flex flex-wrap items-center gap-2.5 relative z-20">
+                        <button type="button" id="btnHeaderCallAthlete" onclick="openCallAthleteModal()" class="relative z-20 cursor-pointer accent-bg hover:brightness-95 active:scale-95 text-slate-950 font-extrabold px-3.5 py-1.5 rounded-full text-xs flex items-center gap-1.5 shadow-lg shadow-[#ccff00]/20 transition">
                             <i class="ph-bold ph-megaphone text-sm"></i> Panggil Atlet
                         </button>
-                        <span class="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-bold animate-pulse"><i class="ph-bold ph-circle text-[8px]"></i> LIVE VIEWER SYNCED</span>
+                        <span class="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-bold animate-pulse pointer-events-none"><i class="ph-bold ph-circle text-[8px]"></i> LIVE VIEWER SYNCED</span>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="liveCourtsContainer"></div>
@@ -903,24 +903,31 @@
                                 </div>
                             </div>
 
-                            <!-- 2. MODEL SUARA TTS / REKAMAN AUDIO INTERNAL -->
+                            <!-- 2. KARAKTER SUARA (PRIA / WANITA) & ENGINE BROWSER -->
                             <div class="pt-2.5 border-t border-slate-800/80 space-y-2">
-                                <label class="block text-[11px] font-bold text-slate-300">Sumber &amp; Model Suara Panggilan</label>
+                                <label class="block text-[11px] font-bold text-slate-300">Karakter Suara (Pria / Wanita) &amp; Suara Bawaan Browser</label>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <select id="setTtsVoiceMode" onchange="updateTtsSettings()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
-                                        <option value="TTS">TTS Browser (Baca Teks Otomatis)</option>
-                                        <option value="CUSTOM_AUDIO">Rekaman Suara Sendiri (.mp3 / .wav)</option>
+                                    <select id="setTtsGender" onchange="onTtsGenderPresetChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
+                                        <option value="AUTO">Karakter: Otomatis (Default)</option>
+                                        <option value="MALE">Suara Laki-Laki / Cowo (Bawaan)</option>
+                                        <option value="FEMALE">Suara Perempuan / Cewe (Jernih)</option>
                                     </select>
                                     <select id="setTtsVoiceName" onchange="updateTtsSettings()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
-                                        <option value="">Default Browser Voice</option>
+                                        <option value="">Otomatis Sesuai Karakter</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <select id="setTtsVoiceMode" onchange="updateTtsSettings()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
+                                        <option value="TTS">Mode Baca: TTS Dinamis (Sesuai Template)</option>
+                                        <option value="STATIC_AUDIO">Mode Baca: Putar File Audio Statis (.mp3 / .wav)</option>
                                     </select>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
                                     <label class="cursor-pointer bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5 transition">
-                                        <i class="ph-bold ph-microphone-stage accent-text"></i> Upload Rekaman Suara (.mp3 / .wav)
+                                        <i class="ph-bold ph-microphone-stage accent-text"></i> Upload Audio Statis (.mp3 / .wav)
                                         <input type="file" id="inputCustomVoiceAudio" accept="audio/mpeg,audio/wav,audio/mp3,audio/*" onchange="handleCustomAudioUpload(this, 'voice')" class="hidden">
                                     </label>
-                                    <span id="customVoiceFileName" class="text-[10px] text-slate-400 truncate max-w-[165px]">Belum ada rekaman</span>
+                                    <span id="customVoiceFileName" class="text-[10px] text-slate-400 truncate max-w-[165px]">Suara Bawaan Browser</span>
                                     <button type="button" id="btnClearCustomVoice" onclick="clearCustomAudio('voice')" class="hidden text-[10px] text-red-400 hover:underline font-bold">Hapus</button>
                                 </div>
                             </div>
@@ -940,15 +947,22 @@
                                     <button type="button" onclick="insertTtsTemplateTag('{pemain1}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 accent-text px-1.5 py-0.5 rounded">{pemain1}</button>
                                     <button type="button" onclick="insertTtsTemplateTag('{pemain2}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 accent-text px-1.5 py-0.5 rounded">{pemain2}</button>
                                 </div>
+                                <p class="text-[10px] text-slate-400 leading-snug"><i class="ph-bold ph-check-circle accent-text"></i> Otomatis normalisasi TTS: <strong>U15/U-17</strong> &rarr; <em>U 15 / U 17</em>, <strong>MS/WS/MD/WD/XD/OPEN</strong> &rarr; <em>Tunggal/Ganda/Kelas Open</em>, &amp; <strong>CD/EE/FF/BB</strong> &rarr; <em>Kelas C D, E E, F F, B B</em>.</p>
                             </div>
 
-                            <!-- 4. KECEPATAN & TES LENGKAP -->
-                            <div class="flex items-center gap-3 pt-2 border-t border-slate-800/80">
-                                <span class="text-[11px] text-slate-400 shrink-0">Kecepatan: <strong id="ttsRateLabel" class="accent-text">0.95x</strong></span>
-                                <input type="range" id="setTtsRate" min="0.7" max="1.3" step="0.05" value="0.95" oninput="updateTtsSettings()" class="w-full accent-[#ccff00] cursor-pointer">
-                                <button type="button" onclick="testTtsAnnouncement()" class="shrink-0 px-3 py-1.5 rounded-lg accent-bg hover:brightness-95 text-slate-950 font-extrabold text-[11px] flex items-center gap-1">
-                                    <i class="ph-bold ph-play"></i> Tes Suara
-                                </button>
+                            <!-- 4. NADA (PITCH), KECEPATAN & TES LENGKAP -->
+                            <div class="pt-2 border-t border-slate-800/80 space-y-2.5">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[11px] text-slate-400 shrink-0 w-24">Nada: <strong id="ttsPitchLabel" class="accent-text">0.76x</strong></span>
+                                    <input type="range" id="setTtsPitch" min="0.55" max="1.30" step="0.02" value="0.76" oninput="updateTtsSettings()" class="w-full accent-[#ccff00] cursor-pointer">
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[11px] text-slate-400 shrink-0 w-24">Tempo: <strong id="ttsRateLabel" class="accent-text">0.95x</strong></span>
+                                    <input type="range" id="setTtsRate" min="0.7" max="1.3" step="0.05" value="0.95" oninput="updateTtsSettings()" class="w-full accent-[#ccff00] cursor-pointer">
+                                    <button type="button" onclick="testTtsAnnouncement()" class="shrink-0 px-3 py-1.5 rounded-lg accent-bg hover:brightness-95 text-slate-950 font-extrabold text-[11px] flex items-center gap-1">
+                                        <i class="ph-bold ph-play"></i> Tes Suara
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1508,6 +1522,9 @@
                         sponsorSpeed: Number(tournamentMeta.sponsorSpeed) || 24,
                         ttsEnabled: tournamentMeta.ttsEnabled !== false,
                         ttsRate: Number(tournamentMeta.ttsRate) || 0.95,
+                        ttsPitch: Number(tournamentMeta.ttsPitch) || 1.0,
+                        ttsGender: tournamentMeta.ttsGender || 'AUTO',
+                        ttsForceLocalMale: tournamentMeta.ttsForceLocalMale !== false,
                         ttsChimePreset: tournamentMeta.ttsChimePreset || 'DING_DONG',
                         ttsVoiceMode: tournamentMeta.ttsVoiceMode || 'TTS',
                         ttsVoiceName: tournamentMeta.ttsVoiceName || '',
@@ -1592,6 +1609,8 @@
                     }
                     if (data.ttsEnabled !== undefined) tournamentMeta.ttsEnabled = Boolean(data.ttsEnabled);
                     if (data.ttsRate !== undefined) tournamentMeta.ttsRate = Number(data.ttsRate) || 0.95;
+                    if (data.ttsPitch !== undefined) tournamentMeta.ttsPitch = Number(data.ttsPitch) || 1.0;
+                    if (data.ttsGender) tournamentMeta.ttsGender = data.ttsGender;
                     if (data.ttsChimePreset) tournamentMeta.ttsChimePreset = data.ttsChimePreset;
                     if (data.ttsVoiceMode) tournamentMeta.ttsVoiceMode = data.ttsVoiceMode;
                     if (data.ttsVoiceName !== undefined) tournamentMeta.ttsVoiceName = data.ttsVoiceName;
@@ -2538,54 +2557,6 @@
                         <tbody>${rowsHtml}</tbody>
                     </table>
                 
-    <!-- MODAL PANGGIL ATLET (ARENA ANNOUNCER) -->
-    <div id="callAthleteModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
-        <div class="bg-slate-900 border border-[#ccff00]/40 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl accent-bg text-slate-950 flex items-center justify-center font-black">
-                        <i class="ph-bold ph-megaphone text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-extrabold text-white text-sm">Panggil Atlet ke Lapangan</h3>
-                        <p class="text-[11px] text-slate-400">Terhubung otomatis dengan Chime &amp; TTS Announcer (Kartu 12).</p>
-                    </div>
-                </div>
-                <button type="button" onclick="closeCallAthleteModal()" class="text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
-            </div>
-
-            <div class="space-y-2">
-                <div class="flex items-center justify-between gap-2">
-                    <label class="text-xs font-bold text-slate-300">Pilih Lapangan Aktif (LIVE) / Partai Pending</label>
-                    <div id="callAthleteStatusBadge" class="text-[10px]"></div>
-                </div>
-                <select id="callAthleteMatchSelect" onchange="onCallAthleteSelectionChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-[#ccff00]"></select>
-                <p id="callAthleteEmptyHint" class="hidden text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
-                    Belum ada partai yang ditempatkan di Court 1–12. Anda tetap dapat mengedit teks panggilan di bawah secara manual lalu membunyikannya.
-                </p>
-            </div>
-
-            <div class="space-y-1.5">
-                <div class="flex items-center justify-between">
-                    <label class="text-xs font-bold text-slate-300">Teks Panggilan Suara (Bisa Diedit Sebelum Dibunyikan)</label>
-                    <button type="button" onclick="onCallAthleteSelectionChange()" class="text-[10px] accent-text hover:underline font-bold">Reset dari Template</button>
-                </div>
-                <textarea id="callAthletePreviewText" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white leading-relaxed focus:outline-none focus:border-[#ccff00]"></textarea>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
-                <button type="button" onclick="playOpeningChime()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5">
-                    <i class="ph-bold ph-bell-ringing accent-text"></i> Chime Saja
-                </button>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="closeCallAthleteModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs">Tutup</button>
-                    <button type="button" onclick="triggerCallAthleteNow()" class="accent-bg hover:brightness-95 text-slate-950 font-extrabold px-5 py-2.5 rounded-xl text-xs shadow-lg flex items-center gap-1.5">
-                        <i class="ph-bold ph-speaker-high text-base"></i> Bunyikan Panggilan
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 </body></html>`;
             const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
             const link = document.createElement('a');
@@ -4040,6 +4011,9 @@
             const ttsChk = document.getElementById('setTtsEnabled');
             const ttsRate = document.getElementById('setTtsRate');
             const ttsLbl = document.getElementById('ttsRateLabel');
+            const ttsPitch = document.getElementById('setTtsPitch');
+            const ttsPitchLbl = document.getElementById('ttsPitchLabel');
+            const genderSel = document.getElementById('setTtsGender');
             const chimeSel = document.getElementById('setTtsChimePreset');
             const vModeSel = document.getElementById('setTtsVoiceMode');
             const tplEl = document.getElementById('setTtsTemplate');
@@ -4048,8 +4022,12 @@
             const rateVal = Number(tournamentMeta.ttsRate) || 0.95;
             if (ttsRate) ttsRate.value = rateVal;
             if (ttsLbl) ttsLbl.innerText = rateVal + 'x';
+            const pitchVal = Number(tournamentMeta.ttsPitch) || (tournamentMeta.ttsGender === 'MALE' ? 0.85 : 1.0);
+            if (ttsPitch) ttsPitch.value = pitchVal;
+            if (ttsPitchLbl) ttsPitchLbl.innerText = pitchVal.toFixed(2) + 'x';
+            if (genderSel) genderSel.value = tournamentMeta.ttsGender || 'AUTO';
             if (chimeSel) chimeSel.value = tournamentMeta.ttsChimePreset || 'DING_DONG';
-            if (vModeSel) vModeSel.value = tournamentMeta.ttsVoiceMode || 'TTS';
+            if (vModeSel) vModeSel.value = (tournamentMeta.ttsVoiceMode === 'STATIC_AUDIO' || tournamentMeta.ttsVoiceMode === 'CUSTOM_AUDIO') ? 'STATIC_AUDIO' : 'TTS';
             if (tplEl) tplEl.value = (tournamentMeta.ttsTemplate && tournamentMeta.ttsTemplate.trim()) ? tournamentMeta.ttsTemplate : DEFAULT_TTS_TEMPLATE;
 
             populateBrowserTtsVoices();
@@ -4106,6 +4084,17 @@
         const CUSTOM_VOICE_STORAGE_KEY = 'satset_custom_voice_audio_v1';
         let activeArenaAudioPlayer = null;
 
+        function detectVoiceGenderTag(voiceName) {
+            const n = String(voiceName || '').toLowerCase();
+            if (/(ardi|andika|rizal|budi|dimas|osman|idd|ide|standard-b|standard-c|wavenet-b|wavenet-c|neural2-b|neural2-c|chirp3-hd-charon|chirp3-hd-fenrir|chirp3-hd-orus|chirp3-hd-puck|male|david|daniel|guy|george|mark|james|ryan|liam|william|christopher|eric|roger|steffan|ravi|prabhat|harold|andrew|brian|tony|connor|mitchell|thomas|oliver|rishi|alex|fred|man|pria|cowo|laki)/i.test(n)) {
+                return 'MALE';
+            }
+            if (/(gadis|damayanti|siti|ayu|idc|dfz|standard-a|standard-d|wavenet-a|wavenet-d|neural2-a|neural2-d|female|zira|jenny|aria|sara|hazel|susan|libby|sonia|mia|clara|neerja|natasha|ava|emma|michelle|samantha|victoria|karen|moira|tessa|woman|wanita|cewe|perempuan)/i.test(n)) {
+                return 'FEMALE';
+            }
+            return 'NEUTRAL';
+        }
+
         function populateBrowserTtsVoices() {
             const sel = document.getElementById('setTtsVoiceName');
             if (!sel || !('speechSynthesis' in window)) return;
@@ -4117,10 +4106,12 @@
                 if (aId !== bId) return aId - bId;
                 return a.name.localeCompare(b.name);
             });
-            let opts = `<option value="">Default Browser Voice (${sorted.find(v => v.lang.toLowerCase().startsWith('id')) ? 'Auto id-ID' : 'System Default'})</option>`;
+            let opts = `<option value="">Otomatis Sesuai Karakter (Pria / Wanita)</option>`;
             sorted.forEach(v => {
+                const gTag = detectVoiceGenderTag(v.name);
+                const badge = gTag === 'MALE' ? '[Pria]' : (gTag === 'FEMALE' ? '[Wanita]' : '[Netral]');
                 const selected = v.name === savedVoice ? 'selected' : '';
-                opts += `<option value="${escapeHtml(v.name)}" ${selected}>${escapeHtml(v.name)} (${escapeHtml(v.lang)})</option>`;
+                opts += `<option value="${escapeHtml(v.name)}" ${selected}>${badge} ${escapeHtml(v.name)} (${escapeHtml(v.lang)})</option>`;
             });
             sel.innerHTML = opts;
         }
@@ -4141,27 +4132,26 @@
             const voiceData = safeGetLocal(CUSTOM_VOICE_STORAGE_KEY, '');
             const voiceLbl = document.getElementById('customVoiceFileName');
             const voiceClear = document.getElementById('btnClearCustomVoice');
-            if (voiceLbl) voiceLbl.innerText = voiceData ? (voiceName || 'Rekaman suara aktif') : 'Belum ada rekaman';
+            if (voiceLbl) voiceLbl.innerText = voiceData ? (voiceName || 'Audio statis aktif') : 'Suara Bawaan Browser';
             if (voiceClear) voiceClear.classList.toggle('hidden', !voiceData);
         }
 
         function handleCustomAudioUpload(input, kind) {
             const file = input.files && input.files[0];
             if (!file) return;
-            if (file.size > 3.5 * 1024 * 1024) {
-                alert('Ukuran file audio terlalu besar (maksimal 3,5 MB agar tersimpan stabil di browser). Silakan kompres atau potong durasi file.');
+            if (file.size > 4.5 * 1024 * 1024) {
+                alert('Ukuran file audio terlalu besar (maksimal 4,5 MB). Silakan pilih file yang lebih ringkas.');
                 input.value = '';
                 return;
             }
+            const key = kind === 'chime' ? CUSTOM_CHIME_STORAGE_KEY : CUSTOM_VOICE_STORAGE_KEY;
             const reader = new FileReader();
             reader.onload = function(ev) {
-                const dataUrl = ev.target.result;
-                const key = kind === 'chime' ? CUSTOM_CHIME_STORAGE_KEY : CUSTOM_VOICE_STORAGE_KEY;
                 try {
-                    localStorage.setItem(key, dataUrl);
+                    localStorage.setItem(key, ev.target.result);
                     localStorage.setItem(key + '_name', file.name);
                 } catch (err) {
-                    alert('Penyimpanan browser penuh untuk menyimpan file audio ini. Gunakan file dengan ukuran lebih kecil.');
+                    alert('Penyimpanan browser penuh untuk menyimpan file audio ini.');
                     return;
                 }
                 if (kind === 'chime') {
@@ -4169,9 +4159,9 @@
                     const sel = document.getElementById('setTtsChimePreset');
                     if (sel) sel.value = 'CUSTOM';
                 } else {
-                    tournamentMeta.ttsVoiceMode = 'CUSTOM_AUDIO';
+                    tournamentMeta.ttsVoiceMode = 'STATIC_AUDIO';
                     const sel = document.getElementById('setTtsVoiceMode');
-                    if (sel) sel.value = 'CUSTOM_AUDIO';
+                    if (sel) sel.value = 'STATIC_AUDIO';
                 }
                 saveAllToStorage();
                 refreshCustomAudioLabels();
@@ -4191,13 +4181,51 @@
                 const sel = document.getElementById('setTtsChimePreset');
                 if (sel) sel.value = 'DING_DONG';
             }
-            if (kind === 'voice' && tournamentMeta.ttsVoiceMode === 'CUSTOM_AUDIO') {
-                tournamentMeta.ttsVoiceMode = 'TTS';
-                const sel = document.getElementById('setTtsVoiceMode');
-                if (sel) sel.value = 'TTS';
+            if (kind === 'voice') {
+                tournamentMeta.customVoiceProfile = null;
+                if (tournamentMeta.ttsVoiceMode !== 'TTS') {
+                    tournamentMeta.ttsVoiceMode = 'TTS';
+                    const sel = document.getElementById('setTtsVoiceMode');
+                    if (sel) sel.value = 'TTS';
+                }
             }
             saveAllToStorage();
             refreshCustomAudioLabels();
+        }
+
+        function onTtsGenderPresetChange() {
+            const gender = document.getElementById('setTtsGender')?.value || 'AUTO';
+            tournamentMeta.ttsGender = gender;
+            const pitchEl = document.getElementById('setTtsPitch');
+            const pitchLbl = document.getElementById('ttsPitchLabel');
+            const rateEl = document.getElementById('setTtsRate');
+            const rateLbl = document.getElementById('ttsRateLabel');
+            const vNameSel = document.getElementById('setTtsVoiceName');
+
+            let defaultPitch = 1.0;
+            let defaultRate = 0.95;
+            if (gender === 'MALE') {
+                defaultPitch = 0.85;
+                defaultRate = 0.95;
+                if (vNameSel && vNameSel.value && detectVoiceGenderTag(vNameSel.value) === 'FEMALE') {
+                    vNameSel.value = '';
+                    tournamentMeta.ttsVoiceName = '';
+                }
+            } else if (gender === 'FEMALE') {
+                defaultPitch = 1.06;
+                defaultRate = 0.96;
+                if (vNameSel && vNameSel.value && detectVoiceGenderTag(vNameSel.value) === 'MALE') {
+                    vNameSel.value = '';
+                    tournamentMeta.ttsVoiceName = '';
+                }
+            }
+            tournamentMeta.ttsPitch = defaultPitch;
+            tournamentMeta.ttsRate = defaultRate;
+            if (pitchEl) pitchEl.value = defaultPitch;
+            if (pitchLbl) pitchLbl.innerText = defaultPitch.toFixed(2) + 'x';
+            if (rateEl) rateEl.value = defaultRate;
+            if (rateLbl) rateLbl.innerText = defaultRate + 'x';
+            saveAllToStorage();
         }
 
         function insertTtsTemplateTag(tag) {
@@ -4223,6 +4251,14 @@
             tournamentMeta.ttsRate = r;
             const lbl = document.getElementById('ttsRateLabel');
             if (lbl) lbl.innerText = r + 'x';
+
+            const p = parseFloat(document.getElementById('setTtsPitch')?.value || '1.0');
+            tournamentMeta.ttsPitch = p;
+            const pLbl = document.getElementById('ttsPitchLabel');
+            if (pLbl) pLbl.innerText = p.toFixed(2) + 'x';
+
+            const genderSel = document.getElementById('setTtsGender');
+            if (genderSel) tournamentMeta.ttsGender = genderSel.value;
 
             const chimeSel = document.getElementById('setTtsChimePreset');
             if (chimeSel) tournamentMeta.ttsChimePreset = chimeSel.value;
@@ -4297,7 +4333,6 @@
                         playTone(880, 0.34, 0.25, 'sine', 0.3);
                         totalMs = 680;
                     } else {
-                        // DING_DONG default
                         playTone(659.25, 0.0, 0.55, 'sine', 0.32);
                         playTone(523.25, 0.42, 0.75, 'sine', 0.32);
                         totalMs = 1200;
@@ -4313,6 +4348,83 @@
             });
         }
 
+        function normalizeArenaTtsText(rawText, langCode = 'id-ID') {
+            if (!rawText) return '';
+            const isEnglishAccent = /^en/i.test(String(langCode || ''));
+            let processed = String(rawText);
+
+            // 1. Kelompok Umur: U15, U17, U-15, U-17 -> U 15, U 17
+            processed = processed.replace(/\bU[-\s]?(\d{1,2})\b/gi, 'U $1');
+
+            // 2. Singkatan Kategori Utama (MS, WS, MD, WD, XD, OPEN)
+            const categoryMap = {
+                MS: 'Tunggal Putra',
+                WS: 'Tunggal Putri',
+                MD: 'Ganda Putra',
+                WD: 'Ganda Putri',
+                XD: 'Ganda Campuran'
+            };
+            Object.keys(categoryMap).forEach(abbr => {
+                const rx = new RegExp(`\\b${abbr}\\b`, 'g');
+                processed = processed.replace(rx, categoryMap[abbr]);
+            });
+
+            processed = processed.replace(/\b(?:KELAS\s+)*OPEN\b/gi, 'Kelas Open');
+
+            // 3. Singkatan Kelas Huruf Ganda (CD, EE, FF, BB, dll)
+            processed = processed.replace(/\b(?:KELAS\s+)*(AA|BB|CC|DD|EE|FF|GG|HH|AB|BC|CD|DE|EF|FG|GH)\b/g, (_, code) => {
+                const upper = code.toUpperCase();
+                if (isEnglishAccent && upper === 'AA') return 'Kelas A, A';
+                return 'Kelas ' + upper.split('').join(' ');
+            });
+
+            // 4. Normalisasi kata kapital umum & akronim turnamen
+            processed = processed
+                .replace(/\bGANDA\b/g, 'Ganda')
+                .replace(/\bTUNGGAL\b/g, 'Tunggal')
+                .replace(/\bPB\b/g, 'P B')
+                .replace(/\bWO\b/g, 'W O')
+                .replace(/\bOOP\b/g, 'O O P')
+                .replace(/\bGOR\b/g, 'G O R')
+                .replace(/\bPBSI\b/g, 'P B S I')
+                .replace(/\bBWF\b/g, 'B W F');
+
+            return processed.replace(/\s{2,}/g, ' ').trim();
+        }
+
+        function resolveArenaVoiceAndTone() {
+            const voices = ('speechSynthesis' in window) ? (window.speechSynthesis.getVoices() || []) : [];
+            const chosenName = tournamentMeta.ttsVoiceName || '';
+            const desiredGender = tournamentMeta.ttsGender || 'AUTO';
+
+            let matchedVoice = chosenName ? voices.find(v => v.name === chosenName) : null;
+
+            const idVoices = voices.filter(v => /^(id|ms)/i.test(v.lang));
+            const idMaleVoices = idVoices.filter(v => detectVoiceGenderTag(v.name) === 'MALE');
+            const idFemaleVoices = idVoices.filter(v => detectVoiceGenderTag(v.name) === 'FEMALE');
+            const allMaleVoices = voices.filter(v => detectVoiceGenderTag(v.name) === 'MALE');
+
+            if (!matchedVoice) {
+                if (desiredGender === 'MALE') {
+                    matchedVoice = idMaleVoices[0] || allMaleVoices[0] || idVoices[0] || voices[0] || null;
+                } else if (desiredGender === 'FEMALE') {
+                    matchedVoice = idFemaleVoices[0] || idVoices[0] || voices.find(v => detectVoiceGenderTag(v.name) === 'FEMALE') || voices[0] || null;
+                } else {
+                    matchedVoice = idVoices[0] || voices[0] || null;
+                }
+            }
+
+            const effectiveLang = matchedVoice ? matchedVoice.lang : 'id-ID';
+            const effectivePitch = Number(tournamentMeta.ttsPitch) || (desiredGender === 'MALE' ? 0.85 : 1.0);
+
+            return {
+                voice: matchedVoice,
+                lang: effectiveLang,
+                pitch: Math.max(0.55, Math.min(1.35, effectivePitch)),
+                rate: Number(tournamentMeta.ttsRate) || 0.95
+            };
+        }
+
         function formatArenaCallMessage(vars) {
             const tpl = (tournamentMeta.ttsTemplate && tournamentMeta.ttsTemplate.trim())
                 ? tournamentMeta.ttsTemplate
@@ -4325,6 +4437,24 @@
                 .replace(/\{pemain2\}/gi, vars.pemain2 || 'Tim Dua');
         }
 
+        function speakTextWithBroadcastCadence(spokenText, voiceCfg) {
+            if (!('speechSynthesis' in window) || !spokenText) return;
+            const chunks = spokenText
+                .split(/(?<=[.!?])\s+/)
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            const parts = chunks.length > 0 ? chunks : [spokenText];
+            parts.forEach((chunk) => {
+                const utter = new SpeechSynthesisUtterance(chunk);
+                utter.lang = voiceCfg.lang;
+                utter.rate = voiceCfg.rate;
+                utter.pitch = voiceCfg.pitch;
+                if (voiceCfg.voice) utter.voice = voiceCfg.voice;
+                window.speechSynthesis.speak(utter);
+            });
+        }
+
         async function speakArenaCall(text, forcePlay = false) {
             if (!forcePlay && tournamentMeta.ttsEnabled === false) return;
             try {
@@ -4335,7 +4465,7 @@
             await playOpeningChime();
 
             const voiceMode = tournamentMeta.ttsVoiceMode || 'TTS';
-            if (voiceMode === 'CUSTOM_AUDIO') {
+            if (voiceMode === 'STATIC_AUDIO' || voiceMode === 'CUSTOM_AUDIO') {
                 const customVoice = safeGetLocal(CUSTOM_VOICE_STORAGE_KEY, '');
                 if (customVoice) {
                     try {
@@ -4349,16 +4479,9 @@
 
             if (!('speechSynthesis' in window)) return;
             try {
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'id-ID';
-                utter.rate = Number(tournamentMeta.ttsRate) || 0.95;
-                const voices = window.speechSynthesis.getVoices() || [];
-                const chosenName = tournamentMeta.ttsVoiceName || '';
-                const matchedVoice = chosenName
-                    ? voices.find(v => v.name === chosenName)
-                    : voices.find(v => v.lang.toLowerCase().startsWith('id'));
-                if (matchedVoice) utter.voice = matchedVoice;
-                window.speechSynthesis.speak(utter);
+                const voiceCfg = resolveArenaVoiceAndTone();
+                const spokenText = normalizeArenaTtsText(text, voiceCfg.lang);
+                speakTextWithBroadcastCadence(spokenText, voiceCfg);
             } catch (e) {}
         }
 
@@ -4378,7 +4501,7 @@
 
         function testTtsAnnouncement() {
             const sampleText = formatArenaCallMessage({
-                kelas: 'GANDA PUTRA OPEN',
+                kelas: activeCategory || 'MD U15',
                 partai: '1',
                 lapangan: '1',
                 pemain1: 'Kevin Sanjaya dan Marcus Gideon',
@@ -4388,9 +4511,10 @@
         }
 
         // =========================================================================
-        // MODAL PANGGIL ATLET (LIVE COURT MONITOR)
+        // MODAL PANGGIL ATLET (LIVE COURT & PANGGILAN MANUAL / MEJA PANITIA / WO)
         // =========================================================================
         let callAthleteOptionsList = [];
+        let activeCallModalTab = 'court';
 
         function buildCallAthleteCandidates() {
             const items = [];
@@ -4430,29 +4554,108 @@
             return items;
         }
 
+        function populateManualCallDropdowns() {
+            const courtSel = document.getElementById('callManualCourtSelect');
+            if (courtSel) {
+                let opts = '';
+                for (let c = 1; c <= 12; c++) {
+                    opts += `<option value="${c}">Lapangan ${c} (Court ${c})</option>`;
+                }
+                courtSel.innerHTML = opts;
+            }
+
+            const clsSel = document.getElementById('callManualClassSelect');
+            if (clsSel) {
+                clsSel.innerHTML = classesList.map(c => `<option value="${escapeHtml(c)}" ${c === activeCategory ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
+            }
+            onManualCallClassChange();
+        }
+
+        function onManualCallClassChange() {
+            const clsSel = document.getElementById('callManualClassSelect');
+            const p1Sel = document.getElementById('callManualParticipant1');
+            const p2Sel = document.getElementById('callManualParticipant2');
+            const deskPlayerSel = document.getElementById('callDeskParticipantSelect');
+            const targetCls = clsSel ? clsSel.value : activeCategory;
+            const list = participantsData[targetCls] || [];
+
+            const optionsHtml = `<option value="">-- Ketik Nama Manual di Bawah --</option>` + list.map(p => {
+                const label = `${p.name}${p.club ? ' (' + p.club + ')' : ''}`;
+                return `<option value="${escapeHtml(p.name)}">${escapeHtml(label)}</option>`;
+            }).join('');
+
+            if (p1Sel) p1Sel.innerHTML = optionsHtml;
+            if (p2Sel) p2Sel.innerHTML = optionsHtml;
+            if (deskPlayerSel) {
+                let allOpts = `<option value="">-- Pilih dari Semua Peserta / Ketik Manual --</option>`;
+                classesList.forEach(c => {
+                    (participantsData[c] || []).forEach(p => {
+                        const val = `${p.name}|||${c}`;
+                        allOpts += `<option value="${escapeHtml(val)}">[${escapeHtml(c)}] ${escapeHtml(p.name)} (${escapeHtml(p.club || '-')})</option>`;
+                    });
+                });
+                deskPlayerSel.innerHTML = allOpts;
+            }
+            updateManualCallPreview();
+        }
+
+        function switchCallAthleteTab(tabName) {
+            activeCallModalTab = tabName;
+            ['court', 'manual', 'desk'].forEach(t => {
+                const panel = document.getElementById('callTabPanel-' + t);
+                const btn = document.getElementById('callTabBtn-' + t);
+                if (panel) panel.classList.toggle('hidden', t !== tabName);
+                if (btn) {
+                    btn.className = (t === tabName)
+                        ? 'accent-bg text-slate-950 font-extrabold py-2 px-2.5 rounded-lg text-[11px] flex items-center justify-center gap-1 transition'
+                        : 'text-slate-400 hover:text-white font-bold py-2 px-2.5 rounded-lg text-[11px] flex items-center justify-center gap-1 transition';
+                }
+            });
+
+            if (tabName === 'court') onCallAthleteSelectionChange();
+            else if (tabName === 'manual') updateManualCallPreview();
+            else if (tabName === 'desk') updateDeskCallPreview();
+        }
+
         function openCallAthleteModal(preselectKey = null) {
+            const modal = document.getElementById('callAthleteModal');
+            if (!modal) return;
             callAthleteOptionsList = buildCallAthleteCandidates();
+            populateManualCallDropdowns();
+
             const sel = document.getElementById('callAthleteMatchSelect');
             const emptyHint = document.getElementById('callAthleteEmptyHint');
-            if (!sel) return;
-
-            if (callAthleteOptionsList.length === 0) {
-                sel.innerHTML = '<option value="">-- Belum ada partai LIVE atau PENDING di Court --</option>';
-                if (emptyHint) emptyHint.classList.remove('hidden');
-            } else {
-                if (emptyHint) emptyHint.classList.add('hidden');
-                sel.innerHTML = callAthleteOptionsList.map(item => {
-                    const tag = item.status === 'LIVE' ? '🔴 LIVE' : '🟡 PENDING / SIAP-SIAP';
-                    const selAttr = preselectKey && item.key === preselectKey ? 'selected' : '';
-                    return `<option value="${item.key}" ${selAttr}>Court ${item.court} [${tag}] • ${escapeHtml(item.cls)} #${item.nr} (${escapeHtml(item.p1)} vs ${escapeHtml(item.p2)})</option>`;
-                }).join('');
+            if (sel) {
+                if (callAthleteOptionsList.length === 0) {
+                    sel.innerHTML = '<option value="">-- Belum ada partai LIVE atau PENDING di Court --</option>';
+                    if (emptyHint) emptyHint.classList.remove('hidden');
+                } else {
+                    if (emptyHint) emptyHint.classList.add('hidden');
+                    sel.innerHTML = callAthleteOptionsList.map(item => {
+                        const tag = item.status === 'LIVE' ? '🔴 LIVE' : '🟡 PENDING / SIAP-SIAP';
+                        const selAttr = preselectKey && item.key === preselectKey ? 'selected' : '';
+                        return `<option value="${item.key}" ${selAttr}>Court ${item.court} [${tag}] • ${escapeHtml(item.cls)} #${item.nr} (${escapeHtml(item.p1)} vs ${escapeHtml(item.p2)})</option>`;
+                    }).join('');
+                }
             }
-            onCallAthleteSelectionChange();
-            document.getElementById('callAthleteModal').classList.remove('hidden');
+
+            if (typeof window.enhanceAllSatsetSelects === 'function') {
+                window.enhanceAllSatsetSelects(modal);
+            }
+
+            // Jika belum ada partai di Live Court dan tidak ada preselect, otomatis buka tab Panggil ke Lapangan Manual agar langsung siap pakai
+            if (!preselectKey && callAthleteOptionsList.length === 0) {
+                switchCallAthleteTab('manual');
+            } else {
+                switchCallAthleteTab('court');
+            }
+
+            modal.classList.remove('hidden');
         }
 
         function closeCallAthleteModal() {
-            document.getElementById('callAthleteModal').classList.add('hidden');
+            const modal = document.getElementById('callAthleteModal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function onCallAthleteSelectionChange() {
@@ -4470,7 +4673,8 @@
                     pemain1: 'Tim Satu',
                     pemain2: 'Tim Dua'
                 });
-                if (badgeEl) badgeEl.innerHTML = '<span class="text-slate-400">Mode Manual / Contoh</span>';
+                if (badgeEl) badgeEl.innerHTML = '<span class="text-slate-400">Belum ada partai aktif</span>';
+                updateNormalizedTtsPreviewHint();
                 return;
             }
 
@@ -4487,29 +4691,120 @@
                 pemain1: chosen.p1.replace(/\+/g, ' dan '),
                 pemain2: chosen.p2.replace(/\+/g, ' dan ')
             });
+            updateNormalizedTtsPreviewHint();
+        }
+
+        function updateManualCallPreview() {
+            const courtNum = document.getElementById('callManualCourtSelect')?.value || '1';
+            const clsName = document.getElementById('callManualClassSelect')?.value || activeCategory;
+            const matchNr = document.getElementById('callManualMatchNr')?.value.trim() || '1';
+            const p1Drop = document.getElementById('callManualParticipant1')?.value || '';
+            const p2Drop = document.getElementById('callManualParticipant2')?.value || '';
+            const p1Custom = document.getElementById('callManualCustom1')?.value.trim() || '';
+            const p2Custom = document.getElementById('callManualCustom2')?.value.trim() || '';
+
+            const p1 = (p1Custom || p1Drop || 'Tim Satu').replace(/\+/g, ' dan ');
+            const p2 = (p2Custom || p2Drop || 'Tim Dua').replace(/\+/g, ' dan ');
+            const previewEl = document.getElementById('callAthletePreviewText');
+            if (previewEl) {
+                previewEl.value = formatArenaCallMessage({
+                    kelas: clsName,
+                    partai: matchNr,
+                    lapangan: courtNum,
+                    pemain1: p1,
+                    pemain2: p2
+                });
+            }
+            updateNormalizedTtsPreviewHint();
+        }
+
+        function updateDeskCallPreview() {
+            const destType = document.getElementById('callDeskDestinationSelect')?.value || 'PANITIA';
+            const rawPick = document.getElementById('callDeskParticipantSelect')?.value || '';
+            const customName = document.getElementById('callDeskCustomName')?.value.trim() || '';
+            const customClass = document.getElementById('callDeskCustomClass')?.value.trim() || '';
+            const woCourt = document.getElementById('callDeskWoCourt')?.value || '1';
+
+            const woWrap = document.getElementById('callDeskWoCourtWrap');
+            if (woWrap) woWrap.classList.toggle('hidden', destType !== 'WO');
+
+            let athleteName = customName;
+            let athleteClass = customClass;
+            if (rawPick && rawPick.includes('|||')) {
+                const [pName, pCls] = rawPick.split('|||');
+                if (!athleteName) athleteName = pName;
+                if (!athleteClass) athleteClass = pCls;
+            }
+            athleteName = (athleteName || 'Atlet Terkait').replace(/\+/g, ' dan ');
+            athleteClass = athleteClass || activeCategory;
+
+            const previewEl = document.getElementById('callAthletePreviewText');
+            if (!previewEl) return;
+
+            if (destType === 'PANITIA') {
+                previewEl.value = `Perhatian. Panggilan kepada ${athleteName}, dari kelas ${athleteClass}, harap segera menuju ke Meja Panitia sekarang juga. Terima kasih.`;
+            } else if (destType === 'REFEREE') {
+                previewEl.value = `Perhatian. Panggilan kepada ${athleteName}, dari kelas ${athleteClass}, harap segera menghadap Referee di Meja Pertandingan. Terima kasih.`;
+            } else if (destType === 'WO') {
+                previewEl.value = `Perhatian. Panggilan terakhir untuk ${athleteName}, kelas ${athleteClass}, harap segera memasuki Lapangan ${woCourt}, atau dinyatakan Walkover. Terima kasih.`;
+            } else {
+                previewEl.value = `Perhatian kepada seluruh peserta dan ofisial. `;
+            }
+            updateNormalizedTtsPreviewHint();
+        }
+
+        function updateNormalizedTtsPreviewHint() {
+            const previewEl = document.getElementById('callAthletePreviewText');
+            const normEl = document.getElementById('callAthleteNormalizedHint');
+            if (!previewEl || !normEl) return;
+            const voiceCfg = resolveArenaVoiceAndTone();
+            normEl.innerText = normalizeArenaTtsText(previewEl.value, voiceCfg.lang);
+        }
+
+        function resetCallAthleteActiveTab() {
+            if (activeCallModalTab === 'court') onCallAthleteSelectionChange();
+            else if (activeCallModalTab === 'manual') updateManualCallPreview();
+            else updateDeskCallPreview();
         }
 
         function triggerCallAthleteNow() {
             const previewEl = document.getElementById('callAthletePreviewText');
-            const sel = document.getElementById('callAthleteMatchSelect');
             const textToSpeak = (previewEl ? previewEl.value.trim() : '');
             if (!textToSpeak) return alert('Teks panggilan tidak boleh kosong!');
 
-            const chosen = callAthleteOptionsList.find(x => x.key === (sel ? sel.value : ''));
-            if (chosen) {
-                tournamentMeta.lastArenaCall = {
-                    id: 'CALL-' + Date.now(),
-                    court: chosen.court,
-                    status: chosen.status,
-                    className: chosen.cls,
-                    matchNr: '#' + chosen.nr,
-                    text: textToSpeak,
-                    calledAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-                };
-                saveAllToStorage();
-                syncLiveStateToSheets();
+            let callMeta = {
+                id: 'CALL-' + Date.now(),
+                court: 0,
+                status: 'MANUAL',
+                className: activeCategory,
+                matchNr: '-',
+                text: textToSpeak,
+                calledAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            if (activeCallModalTab === 'court') {
+                const sel = document.getElementById('callAthleteMatchSelect');
+                const chosen = callAthleteOptionsList.find(x => x.key === (sel ? sel.value : ''));
+                if (chosen) {
+                    callMeta.court = chosen.court;
+                    callMeta.status = chosen.status;
+                    callMeta.className = chosen.cls;
+                    callMeta.matchNr = '#' + chosen.nr;
+                }
+            } else if (activeCallModalTab === 'manual') {
+                callMeta.court = parseInt(document.getElementById('callManualCourtSelect')?.value || '1', 10) || 1;
+                callMeta.className = document.getElementById('callManualClassSelect')?.value || activeCategory;
+                callMeta.matchNr = '#' + (document.getElementById('callManualMatchNr')?.value.trim() || '1');
+                callMeta.status = 'MANUAL_COURT';
+            } else {
+                const dest = document.getElementById('callDeskDestinationSelect')?.value || 'PANITIA';
+                callMeta.status = dest;
+                callMeta.className = document.getElementById('callDeskCustomClass')?.value.trim() || activeCategory;
             }
 
+            tournamentMeta.lastArenaCall = callMeta;
+            saveAllToStorage();
+            syncLiveStateToSheets();
             speakArenaCall(textToSpeak, true);
         }
 
@@ -5242,6 +5537,134 @@
 
     
     
+    <!-- MODAL PANGGIL ATLET (ARENA ANNOUNCER & MANUAL CALL) -->
+    <div id="callAthleteModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[80] flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-[#ccff00]/40 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl my-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl accent-bg text-slate-950 flex items-center justify-center font-black shrink-0">
+                        <i class="ph-bold ph-megaphone text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-white text-sm">Panggilan Arena &amp; Announcer GOR</h3>
+                        <p class="text-[11px] text-slate-400">Terhubung langsung ke Chime, TTS Pria/Wanita &amp; Normalisasi Kelas (Kartu 12).</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCallAthleteModal()" class="text-slate-400 hover:text-white p-1"><i class="ph-bold ph-x text-lg"></i></button>
+            </div>
+
+            <!-- 3 MODE PANGGILAN -->
+            <div class="grid grid-cols-3 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button type="button" id="callTabBtn-court" onclick="switchCallAthleteTab('court')" class="accent-bg text-slate-950 font-extrabold py-2 px-2.5 rounded-lg text-[11px] flex items-center justify-center gap-1 transition">
+                    <i class="ph-bold ph-broadcast"></i> Live / Pending
+                </button>
+                <button type="button" id="callTabBtn-manual" onclick="switchCallAthleteTab('manual')" class="text-slate-400 hover:text-white font-bold py-2 px-2.5 rounded-lg text-[11px] flex items-center justify-center gap-1 transition">
+                    <i class="ph-bold ph-court-basketball"></i> Lapangan 1–12
+                </button>
+                <button type="button" id="callTabBtn-desk" onclick="switchCallAthleteTab('desk')" class="text-slate-400 hover:text-white font-bold py-2 px-2.5 rounded-lg text-[11px] flex items-center justify-center gap-1 transition">
+                    <i class="ph-bold ph-desk"></i> Meja Panitia / WO
+                </button>
+            </div>
+
+            <!-- PANEL 1: PARTAI LIVE / PENDING DI COURT -->
+            <div id="callTabPanel-court" class="space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                    <label class="text-xs font-bold text-slate-300">Pilih Partai di Lapangan Aktif / Pending</label>
+                    <div id="callAthleteStatusBadge" class="text-[10px]"></div>
+                </div>
+                <select id="callAthleteMatchSelect" onchange="onCallAthleteSelectionChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:outline-none focus:border-[#ccff00]"></select>
+                <p id="callAthleteEmptyHint" class="hidden text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
+                    Belum ada partai di Court 1–12. Gunakan tab <strong>Lapangan 1–12</strong> atau <strong>Meja Panitia / WO</strong> di atas untuk panggilan manual.
+                </p>
+            </div>
+
+            <!-- PANEL 2: PANGGIL ATLET / PASANGAN KE LAPANGAN 1-12 (MANUAL) -->
+            <div id="callTabPanel-manual" class="hidden space-y-2.5">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Tujuan Lapangan</label>
+                        <select id="callManualCourtSelect" onchange="updateManualCallPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs accent-text font-extrabold focus:outline-none focus:border-[#ccff00]"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Kelas Pertandingan</label>
+                        <select id="callManualClassSelect" onchange="onManualCallClassChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-[#ccff00]"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">No. Partai</label>
+                        <input type="text" id="callManualMatchNr" value="1" oninput="updateManualCallPreview()" placeholder="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#ccff00]">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold uppercase text-slate-400">Team 1 (Pilih / Ketik Manual)</label>
+                        <select id="callManualParticipant1" onchange="updateManualCallPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white font-semibold"></select>
+                        <input type="text" id="callManualCustom1" oninput="updateManualCallPreview()" placeholder="Atau ketik nama Team 1..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#ccff00]">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold uppercase text-slate-400">Team 2 (Pilih / Ketik Manual)</label>
+                        <select id="callManualParticipant2" onchange="updateManualCallPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white font-semibold"></select>
+                        <input type="text" id="callManualCustom2" oninput="updateManualCallPreview()" placeholder="Atau ketik nama Team 2..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#ccff00]">
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 3: PANGGILAN KE MEJA PANITIA / REFEREE / WO / BEBAS -->
+            <div id="callTabPanel-desk" class="hidden space-y-2.5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Jenis Panggilan</label>
+                        <select id="callDeskDestinationSelect" onchange="updateDeskCallPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-extrabold focus:outline-none focus:border-[#ccff00]">
+                            <option value="PANITIA">Panggilan ke Meja Panitia</option>
+                            <option value="REFEREE">Panggilan ke Meja Referee</option>
+                            <option value="WO">Panggilan Terakhir / Walkover (WO)</option>
+                            <option value="BEBAS">Pengumuman Bebas / Umum GOR</option>
+                        </select>
+                    </div>
+                    <div id="callDeskWoCourtWrap" class="hidden">
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Lapangan Tujuan WO</label>
+                        <select id="callDeskWoCourt" onchange="updateDeskCallPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs accent-text font-extrabold">
+                            <option value="1">Lapangan 1</option><option value="2">Lapangan 2</option><option value="3">Lapangan 3</option><option value="4">Lapangan 4</option>
+                            <option value="5">Lapangan 5</option><option value="6">Lapangan 6</option><option value="7">Lapangan 7</option><option value="8">Lapangan 8</option>
+                            <option value="9">Lapangan 9</option><option value="10">Lapangan 10</option><option value="11">Lapangan 11</option><option value="12">Lapangan 12</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Pilih Atlet / Pasangan Terdaftar</label>
+                    <select id="callDeskParticipantSelect" onchange="updateDeskCallPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold"></select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="callDeskCustomName" oninput="updateDeskCallPreview()" placeholder="Atau ketik nama atlet/klub manual..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ccff00]">
+                    <input type="text" id="callDeskCustomClass" oninput="updateDeskCallPreview()" placeholder="Kelas (misal: MD U15 / EE)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ccff00]">
+                </div>
+            </div>
+
+            <!-- TEKS PANGGILAN SUARA + PREVIEW PELAFALAN TTS -->
+            <div class="space-y-1.5 pt-1 border-t border-slate-800">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-300">Teks Panggilan Suara (Bisa Diedit Sebelum Dibunyikan)</label>
+                    <button type="button" onclick="resetCallAthleteActiveTab()" class="text-[10px] accent-text hover:underline font-bold">Reset Template</button>
+                </div>
+                <textarea id="callAthletePreviewText" rows="3" oninput="updateNormalizedTtsPreviewHint()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white leading-relaxed focus:outline-none focus:border-[#ccff00]"></textarea>
+                <div class="bg-slate-950/90 border border-slate-800 rounded-lg px-2.5 py-1.5 text-[10px] text-slate-400">
+                    <span class="font-bold text-slate-300">Pelafalan TTS Otomatis:</span> <span id="callAthleteNormalizedHint" class="italic accent-text"></span>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="playOpeningChime()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5">
+                    <i class="ph-bold ph-bell-ringing accent-text"></i> Chime Saja
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeCallAthleteModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs">Tutup</button>
+                    <button type="button" onclick="triggerCallAthleteNow()" class="accent-bg hover:brightness-95 text-slate-950 font-extrabold px-5 py-2.5 rounded-xl text-xs shadow-lg flex items-center gap-1.5">
+                        <i class="ph-bold ph-speaker-high text-base"></i> Bunyikan Panggilan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL PIN DEVELOPER (KARTU 7) -->
     <div id="devPinModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
         <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl" onkeydown="if(event.key==='Enter'){ event.preventDefault(); submitDevPinUnlock(); }">
