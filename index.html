@@ -903,32 +903,82 @@
                                 </div>
                             </div>
 
-                            <!-- 2. KARAKTER SUARA (PRIA / WANITA) & ENGINE BROWSER -->
-                            <div class="pt-2.5 border-t border-slate-800/80 space-y-2">
-                                <label class="block text-[11px] font-bold text-slate-300">Karakter Suara (Pria / Wanita) &amp; Suara Bawaan Browser</label>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <select id="setTtsGender" onchange="onTtsGenderPresetChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
-                                        <option value="AUTO">Karakter: Otomatis (Default)</option>
-                                        <option value="MALE">Suara Laki-Laki / Cowo (Bawaan)</option>
-                                        <option value="FEMALE">Suara Perempuan / Cewe (Jernih)</option>
-                                    </select>
-                                    <select id="setTtsVoiceName" onchange="updateTtsSettings()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
-                                        <option value="">Otomatis Sesuai Karakter</option>
-                                    </select>
+                            <!-- 2. CLONE TONE SAMPLE, KARAKTER SUARA & ENGINE BROWSER -->
+                            <div class="pt-2.5 border-t border-slate-800/80 space-y-2.5">
+                                <div class="flex items-center justify-between gap-2">
+                                    <label class="block text-[11px] font-bold text-slate-300">Clone Tone Sample &amp; Karakter Suara Announcer</label>
+                                    <span class="text-[9.5px] font-extrabold px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">AI TONE ANALYZER</span>
                                 </div>
+
+                                <!-- UPLOAD SAMPLE UNTUK CLONE TONE -->
+                                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <label class="cursor-pointer accent-bg hover:brightness-95 text-slate-950 px-3 py-1.5 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1.5 shadow-sm transition">
+                                            <i class="ph-bold ph-waveform"></i> Upload Sample Suara (Clone Tone)
+                                            <input type="file" id="inputCustomVoiceAudio" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac" onchange="handleCustomAudioUpload(this, 'voice')" class="hidden">
+                                        </label>
+                                        <span id="customVoiceFileName" class="text-[10px] text-slate-300 font-semibold truncate max-w-[185px]">Belum ada sample suara</span>
+                                        <button type="button" id="btnClearCustomVoice" onclick="clearCustomAudio('voice')" class="hidden text-[10px] text-red-400 hover:underline font-bold ml-auto">Hapus</button>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 leading-snug">Upload rekaman suara sendiri atau audio download internet (.mp3/.wav/.m4a/.ogg). Sistem otomatis mengekstrak <strong>frekuensi nada (Hz), gender, timbre &amp; tempo</strong> agar dipakai membaca seluruh panggilan partai.</p>
+
+                                    <!-- HASIL ANALISIS CLONE TONE -->
+                                    <div id="cloneToneProfileCard" class="hidden bg-slate-950 border border-[#ccff00]/35 rounded-xl p-2.5 space-y-2">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-[10px] font-black accent-text flex items-center gap-1">
+                                                <i class="ph-bold ph-check-circle"></i> <span id="cloneToneSummaryTitle">CLONE TONE AKTIF</span>
+                                            </span>
+                                            <span id="cloneToneF0Badge" class="text-[9.5px] font-mono bg-slate-900 text-sky-300 border border-slate-700 px-2 py-0.5 rounded">F0: ~120 Hz</span>
+                                        </div>
+                                        <div id="cloneToneMetricsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
+                                            <div class="bg-slate-900/90 rounded-lg px-2 py-1 border border-slate-800">
+                                                <span class="text-slate-500 block text-[9px]">Karakter</span>
+                                                <strong id="ctMetricRegister" class="text-white">Pria Baritone</strong>
+                                            </div>
+                                            <div class="bg-slate-900/90 rounded-lg px-2 py-1 border border-slate-800">
+                                                <span class="text-slate-500 block text-[9px]">Timbre</span>
+                                                <strong id="ctMetricTimbre" class="text-white">Hangat &amp; Tegas</strong>
+                                            </div>
+                                            <div class="bg-slate-900/90 rounded-lg px-2 py-1 border border-slate-800">
+                                                <span class="text-slate-500 block text-[9px]">Pitch Clone</span>
+                                                <strong id="ctMetricPitch" class="accent-text font-mono">0.84x</strong>
+                                            </div>
+                                            <div class="bg-slate-900/90 rounded-lg px-2 py-1 border border-slate-800">
+                                                <span class="text-slate-500 block text-[9px]">Tempo Clone</span>
+                                                <strong id="ctMetricRate" class="accent-text font-mono">0.95x</strong>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                            <button type="button" onclick="testTtsAnnouncement()" class="px-2.5 py-1 rounded-lg accent-bg text-slate-950 font-extrabold text-[10px] inline-flex items-center gap-1">
+                                                <i class="ph-bold ph-speaker-high"></i> Tes Clone Tone
+                                            </button>
+                                            <button type="button" id="btnPreviewRawSample" onclick="playRawUploadedVoiceSample()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-[10px] inline-flex items-center gap-1">
+                                                <i class="ph-bold ph-play-circle accent-text"></i> Sample Asli
+                                            </button>
+                                            <button type="button" onclick="reapplyClonedToneProfile()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 font-bold text-[10px] inline-flex items-center gap-1">
+                                                <i class="ph-bold ph-arrows-clockwise"></i> Terapkan Ulang
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="grid grid-cols-1 gap-2">
                                     <select id="setTtsVoiceMode" onchange="updateTtsSettings()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
-                                        <option value="TTS">Mode Baca: TTS Dinamis (Sesuai Template)</option>
-                                        <option value="STATIC_AUDIO">Mode Baca: Putar File Audio Statis (.mp3 / .wav)</option>
+                                        <option value="CLONE_TONE">Mode Baca: Clone Tone Sample (TTS Dinamis Ikuti Sample)</option>
+                                        <option value="TTS">Mode Baca: TTS Dinamis (Suara Andika / Browser)</option>
+                                        <option value="INTRO_PLUS_TTS">Mode Baca: Audio Upload Intro + Lanjut TTS Dinamis</option>
+                                        <option value="STATIC_AUDIO">Mode Baca: Putar File Audio Upload Saja (Pitch &amp; Tempo)</option>
                                     </select>
                                 </div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <label class="cursor-pointer bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5 transition">
-                                        <i class="ph-bold ph-microphone-stage accent-text"></i> Upload Audio Statis (.mp3 / .wav)
-                                        <input type="file" id="inputCustomVoiceAudio" accept="audio/mpeg,audio/wav,audio/mp3,audio/*" onchange="handleCustomAudioUpload(this, 'voice')" class="hidden">
-                                    </label>
-                                    <span id="customVoiceFileName" class="text-[10px] text-slate-400 truncate max-w-[165px]">Suara Bawaan Browser</span>
-                                    <button type="button" id="btnClearCustomVoice" onclick="clearCustomAudio('voice')" class="hidden text-[10px] text-red-400 hover:underline font-bold">Hapus</button>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <select id="setTtsGender" onchange="onTtsGenderPresetChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
+                                        <option value="AUTO">Karakter: Otomatis / Clone Sample</option>
+                                        <option value="MALE">Suara Laki-Laki / Cowo</option>
+                                        <option value="FEMALE">Suara Perempuan / Cewe</option>
+                                    </select>
+                                    <select id="setTtsVoiceName" onchange="updateTtsSettings()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#ccff00]">
+                                        <option value="">Otomatis Sesuai Karakter / Clone</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -938,10 +988,12 @@
                                     <label class="text-[11px] font-bold text-slate-300">Template Kata-Kata Panggilan</label>
                                     <button type="button" onclick="resetTtsTemplateDefault()" class="text-[10px] text-slate-400 hover:text-white underline">Reset Default</button>
                                 </div>
-                                <textarea id="setTtsTemplate" rows="2" oninput="updateTtsSettings()" placeholder="Panggilan pertandingan. Kelas {kelas}, partai nomor {partai}, {pemain1} melawan {pemain2}, silakan memasuki Lapangan {lapangan}." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white leading-relaxed focus:outline-none focus:border-[#ccff00]"></textarea>
+                                <textarea id="setTtsTemplate" rows="2" oninput="updateTtsSettings()" placeholder="Panggilan pertandingan. Kelas {kelas}, partai nomor {nomor}, {pemain1} melawan {pemain2}, silakan memasuki Lapangan {lapangan}." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white leading-relaxed focus:outline-none focus:border-[#ccff00]"></textarea>
                                 <div class="flex flex-wrap items-center gap-1 text-[10px] font-mono">
                                     <span class="text-slate-500 mr-1 font-sans">Variabel:</span>
                                     <button type="button" onclick="insertTtsTemplateTag('{kelas}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 accent-text px-1.5 py-0.5 rounded">{kelas}</button>
+                                    <button type="button" onclick="insertTtsTemplateTag('{nomor}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 accent-text px-1.5 py-0.5 rounded">{nomor}</button>
+                                    <button type="button" onclick="insertTtsTemplateTag('{no_partai}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 accent-text px-1.5 py-0.5 rounded">{no_partai}</button>
                                     <button type="button" onclick="insertTtsTemplateTag('{partai}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 accent-text px-1.5 py-0.5 rounded">{partai}</button>
                                     <button type="button" onclick="insertTtsTemplateTag('{lapangan}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 accent-text px-1.5 py-0.5 rounded">{lapangan}</button>
                                     <button type="button" onclick="insertTtsTemplateTag('{pemain1}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 accent-text px-1.5 py-0.5 rounded">{pemain1}</button>
@@ -1529,6 +1581,7 @@
                         ttsVoiceMode: tournamentMeta.ttsVoiceMode || 'TTS',
                         ttsVoiceName: tournamentMeta.ttsVoiceName || '',
                         ttsTemplate: tournamentMeta.ttsTemplate || DEFAULT_TTS_TEMPLATE,
+                        customVoiceProfile: tournamentMeta.customVoiceProfile || null,
                         lastArenaCall: tournamentMeta.lastArenaCall || null,
                         scoringRule: tournamentMeta.scoringRule || '21_3SET',
                         minRestMinutes: Number(tournamentMeta.minRestMinutes) || 45,
@@ -1615,6 +1668,7 @@
                     if (data.ttsVoiceMode) tournamentMeta.ttsVoiceMode = data.ttsVoiceMode;
                     if (data.ttsVoiceName !== undefined) tournamentMeta.ttsVoiceName = data.ttsVoiceName;
                     if (data.ttsTemplate !== undefined) tournamentMeta.ttsTemplate = data.ttsTemplate;
+                    if (data.customVoiceProfile !== undefined) tournamentMeta.customVoiceProfile = data.customVoiceProfile;
                     if (data.sponsorDisplayMode) tournamentMeta.sponsorDisplayMode = data.sponsorDisplayMode;
                     if (data.sponsorSpeed !== undefined) tournamentMeta.sponsorSpeed = Number(data.sponsorSpeed) || 24;
                     if (data.scoringRule) tournamentMeta.scoringRule = data.scoringRule;
@@ -4027,7 +4081,12 @@
             if (ttsPitchLbl) ttsPitchLbl.innerText = pitchVal.toFixed(2) + 'x';
             if (genderSel) genderSel.value = tournamentMeta.ttsGender || 'AUTO';
             if (chimeSel) chimeSel.value = tournamentMeta.ttsChimePreset || 'DING_DONG';
-            if (vModeSel) vModeSel.value = (tournamentMeta.ttsVoiceMode === 'STATIC_AUDIO' || tournamentMeta.ttsVoiceMode === 'CUSTOM_AUDIO') ? 'STATIC_AUDIO' : 'TTS';
+            if (vModeSel) {
+                if (tournamentMeta.ttsVoiceMode === 'INTRO_PLUS_TTS') vModeSel.value = 'INTRO_PLUS_TTS';
+                else if (tournamentMeta.ttsVoiceMode === 'STATIC_AUDIO' || tournamentMeta.ttsVoiceMode === 'CUSTOM_AUDIO') vModeSel.value = 'STATIC_AUDIO';
+                else if (tournamentMeta.ttsVoiceMode === 'CLONE_TONE' || tournamentMeta.customVoiceProfile) vModeSel.value = 'CLONE_TONE';
+                else vModeSel.value = 'TTS';
+            }
             if (tplEl) tplEl.value = (tournamentMeta.ttsTemplate && tournamentMeta.ttsTemplate.trim()) ? tournamentMeta.ttsTemplate : DEFAULT_TTS_TEMPLATE;
 
             populateBrowserTtsVoices();
@@ -4079,10 +4138,209 @@
             syncLiveStateToSheets();
         }
 
-        const DEFAULT_TTS_TEMPLATE = 'Panggilan pertandingan. Kelas {kelas}, partai nomor {partai}, {pemain1} melawan {pemain2}, silakan memasuki Lapangan {lapangan}.';
+        const DEFAULT_TTS_TEMPLATE = 'Panggilan pertandingan. Kelas {kelas}, partai nomor {nomor}, {pemain1} melawan {pemain2}, silakan memasuki Lapangan {lapangan}.';
         const CUSTOM_CHIME_STORAGE_KEY = 'satset_custom_chime_audio_v1';
         const CUSTOM_VOICE_STORAGE_KEY = 'satset_custom_voice_audio_v1';
         let activeArenaAudioPlayer = null;
+        let activePitchShifterEngine = null;
+
+        // =========================================================================
+        // REAL-TIME WEB AUDIO PITCH & TEMPO ENGINE (DECODE AUDIO BUFFER)
+        // =========================================================================
+        let activeBufferSourceNode = null;
+        let activeAudioContext = null;
+
+        function stopActiveArenaAudio() {
+            try {
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            } catch (e) {}
+            try {
+                if (activeArenaAudioPlayer) {
+                    activeArenaAudioPlayer.pause();
+                    activeArenaAudioPlayer.currentTime = 0;
+                    activeArenaAudioPlayer = null;
+                }
+            } catch (e) {}
+            try {
+                if (activeBufferSourceNode) {
+                    activeBufferSourceNode.onended = null;
+                    activeBufferSourceNode.stop();
+                    activeBufferSourceNode.disconnect();
+                    activeBufferSourceNode = null;
+                }
+            } catch (e) {}
+            try {
+                if (activePitchShifterEngine) {
+                    activePitchShifterEngine.destroy();
+                    activePitchShifterEngine = null;
+                }
+            } catch (e) {}
+            try {
+                if (activeAudioContext && activeAudioContext.state !== 'closed') {
+                    activeAudioContext.close();
+                    activeAudioContext = null;
+                }
+            } catch (e) {}
+        }
+
+        function getActivePitchAndTempoValues() {
+            const pitchSlider = document.getElementById('setTtsPitch');
+            const rateSlider = document.getElementById('setTtsRate');
+            const pitch = pitchSlider ? parseFloat(pitchSlider.value) : (Number(tournamentMeta.ttsPitch) || 1.0);
+            const rate = rateSlider ? parseFloat(rateSlider.value) : (Number(tournamentMeta.ttsRate) || 0.95);
+            return {
+                pitch: Math.max(0.55, Math.min(1.35, isNaN(pitch) ? 1.0 : pitch)),
+                rate: Math.max(0.70, Math.min(1.30, isNaN(rate) ? 0.95 : rate))
+            };
+        }
+
+        // Time-stretch AudioBuffer (mengubah tempo/kecepatan bicara secara independen tanpa mengubah pitch)
+        function timeStretchAudioBuffer(audioCtx, inputBuffer, tempoRatio) {
+            if (Math.abs(tempoRatio - 1.0) < 0.01) return inputBuffer;
+
+            const numChannels = inputBuffer.numberOfChannels;
+            const sampleRate = inputBuffer.sampleRate;
+            const inLen = inputBuffer.length;
+            const outLen = Math.max(1, Math.floor(inLen / tempoRatio));
+            const outputBuffer = audioCtx.createBuffer(numChannels, outLen, sampleRate);
+
+            const grainSize = Math.floor(sampleRate * 0.045); // 45 ms window untuk vokal jernih
+            const halfGrain = grainSize >> 1;
+            const hann = new Float32Array(grainSize);
+            for (let i = 0; i < grainSize; i++) {
+                hann[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (grainSize - 1)));
+            }
+
+            for (let ch = 0; ch < numChannels; ch++) {
+                const inData = inputBuffer.getChannelData(ch);
+                const outData = outputBuffer.getChannelData(ch);
+                const norm = new Float32Array(outLen);
+
+                let outPos = 0;
+                while (outPos < outLen) {
+                    const inCenter = Math.floor(outPos * tempoRatio);
+                    for (let i = 0; i < grainSize; i++) {
+                        const oIdx = outPos + i;
+                        const iIdx = inCenter + i;
+                        if (oIdx < outLen && iIdx < inLen) {
+                            const w = hann[i];
+                            outData[oIdx] += inData[iIdx] * w;
+                            norm[oIdx] += w;
+                        }
+                    }
+                    outPos += halfGrain;
+                }
+
+                for (let i = 0; i < outLen; i++) {
+                    if (norm[i] > 0.0001) outData[i] /= norm[i];
+                }
+            }
+            return outputBuffer;
+        }
+
+        function applyRealtimePitchAndTempoToActiveAudio() {
+            const { pitch, rate } = getActivePitchAndTempoValues();
+            if (activeBufferSourceNode && activeAudioContext) {
+                try {
+                    const baseTempo = activeBufferSourceNode._appliedStretchTempo || 1.0;
+                    const effectiveRate = rate / baseTempo;
+                    const detuneCents = 1200 * Math.log2(pitch);
+                    activeBufferSourceNode.playbackRate.setValueAtTime(effectiveRate, activeAudioContext.currentTime);
+                    if (activeBufferSourceNode.detune) {
+                        activeBufferSourceNode.detune.setValueAtTime(detuneCents, activeAudioContext.currentTime);
+                    }
+                } catch (e) {}
+            } else if (activeArenaAudioPlayer) {
+                try {
+                    if ('preservesPitch' in activeArenaAudioPlayer) activeArenaAudioPlayer.preservesPitch = false;
+                    if ('mozPreservesPitch' in activeArenaAudioPlayer) activeArenaAudioPlayer.mozPreservesPitch = false;
+                    if ('webkitPreservesPitch' in activeArenaAudioPlayer) activeArenaAudioPlayer.webkitPreservesPitch = false;
+                    activeArenaAudioPlayer.playbackRate = Math.max(0.5, Math.min(2.0, pitch * rate));
+                } catch (e) {}
+            }
+        }
+
+        function playHtml5AudioWithPitchAndTempo(audioSrc) {
+            return new Promise((resolve) => {
+                try {
+                    const { pitch, rate } = getActivePitchAndTempoValues();
+                    const audio = new Audio(audioSrc);
+                    if ('preservesPitch' in audio) audio.preservesPitch = false;
+                    if ('mozPreservesPitch' in audio) audio.mozPreservesPitch = false;
+                    if ('webkitPreservesPitch' in audio) audio.webkitPreservesPitch = false;
+                    audio.playbackRate = Math.max(0.5, Math.min(2.0, pitch * rate));
+                    activeArenaAudioPlayer = audio;
+                    audio.onended = () => {
+                        if (activeArenaAudioPlayer === audio) activeArenaAudioPlayer = null;
+                        resolve(true);
+                    };
+                    audio.onerror = () => {
+                        if (activeArenaAudioPlayer === audio) activeArenaAudioPlayer = null;
+                        resolve(false);
+                    };
+                    audio.play().catch(() => {
+                        if (activeArenaAudioPlayer === audio) activeArenaAudioPlayer = null;
+                        resolve(false);
+                    });
+                } catch (err) {
+                    resolve(false);
+                }
+            });
+        }
+
+        async function playUploadedAudioWithPitchAndTempo(audioSrc, shouldStopExisting = true) {
+            if (!audioSrc) return false;
+            const { pitch, rate } = getActivePitchAndTempoValues();
+
+            try {
+                if (shouldStopExisting) stopActiveArenaAudio();
+
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return await playHtml5AudioWithPitchAndTempo(audioSrc);
+
+                const ctx = new AudioCtx();
+                if (ctx.state === 'suspended') await ctx.resume();
+                activeAudioContext = ctx;
+
+                const resp = await fetch(audioSrc);
+                const arrayBuf = await resp.arrayBuffer();
+                const decodedBuffer = await ctx.decodeAudioData(arrayBuf);
+
+                // Pisahkan kontrol Pitch (detune dalam cents) dan Tempo (time-stretch + playbackRate)
+                const stretchFactor = rate / pitch;
+                const processedBuffer = timeStretchAudioBuffer(ctx, decodedBuffer, stretchFactor);
+
+                const source = ctx.createBufferSource();
+                source.buffer = processedBuffer;
+                source.playbackRate.value = 1.0;
+                if (source.detune) {
+                    source.detune.value = 1200 * Math.log2(pitch);
+                } else {
+                    source.playbackRate.value = pitch;
+                }
+                source._appliedStretchTempo = stretchFactor;
+
+                const gainNode = ctx.createGain();
+                gainNode.gain.value = 1.0;
+
+                source.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                activeBufferSourceNode = source;
+
+                return new Promise((resolve) => {
+                    source.onended = () => {
+                        if (activeBufferSourceNode === source) activeBufferSourceNode = null;
+                        try { ctx.close(); } catch (e) {}
+                        if (activeAudioContext === ctx) activeAudioContext = null;
+                        resolve(true);
+                    };
+                    source.start(0);
+                });
+            } catch (e) {
+                console.warn('Web Audio decode fallback to HTML5 Audio:', e);
+                return await playHtml5AudioWithPitchAndTempo(audioSrc);
+            }
+        }
 
         function detectVoiceGenderTag(voiceName) {
             const n = String(voiceName || '').toLowerCase();
@@ -4120,6 +4378,8 @@
             window.speechSynthesis.onvoiceschanged = populateBrowserTtsVoices;
         }
 
+        let runtimeUploadedVoiceDataUrl = null;
+
         function refreshCustomAudioLabels() {
             const chimeName = safeGetLocal(CUSTOM_CHIME_STORAGE_KEY + '_name', '');
             const chimeData = safeGetLocal(CUSTOM_CHIME_STORAGE_KEY, '');
@@ -4128,46 +4388,314 @@
             if (chimeLbl) chimeLbl.innerText = chimeData ? (chimeName || 'Custom chime aktif') : 'Belum ada file custom';
             if (chimeClear) chimeClear.classList.toggle('hidden', !chimeData);
 
-            const voiceName = safeGetLocal(CUSTOM_VOICE_STORAGE_KEY + '_name', '');
-            const voiceData = safeGetLocal(CUSTOM_VOICE_STORAGE_KEY, '');
+            const profile = tournamentMeta.customVoiceProfile || null;
+            const voiceName = safeGetLocal(CUSTOM_VOICE_STORAGE_KEY + '_name', '') || (profile ? profile.fileName : '');
+            const voiceData = runtimeUploadedVoiceDataUrl || safeGetLocal(CUSTOM_VOICE_STORAGE_KEY, '');
+            const hasVoiceOrProfile = Boolean(voiceData || profile);
+
             const voiceLbl = document.getElementById('customVoiceFileName');
             const voiceClear = document.getElementById('btnClearCustomVoice');
-            if (voiceLbl) voiceLbl.innerText = voiceData ? (voiceName || 'Audio statis aktif') : 'Suara Bawaan Browser';
-            if (voiceClear) voiceClear.classList.toggle('hidden', !voiceData);
+            if (voiceLbl) voiceLbl.innerText = hasVoiceOrProfile ? (voiceName || 'Sample Clone Tone Aktif') : 'Belum ada sample suara';
+            if (voiceClear) voiceClear.classList.toggle('hidden', !hasVoiceOrProfile);
+
+            const card = document.getElementById('cloneToneProfileCard');
+            if (card) {
+                if (profile) {
+                    card.classList.remove('hidden');
+                    const titleEl = document.getElementById('cloneToneSummaryTitle');
+                    const f0El = document.getElementById('cloneToneF0Badge');
+                    const regEl = document.getElementById('ctMetricRegister');
+                    const timEl = document.getElementById('ctMetricTimbre');
+                    const pitEl = document.getElementById('ctMetricPitch');
+                    const ratEl = document.getElementById('ctMetricRate');
+                    const rawBtn = document.getElementById('btnPreviewRawSample');
+                    if (titleEl) titleEl.innerText = `CLONE TONE: ${(profile.fileName || 'SAMPLE').toUpperCase().slice(0, 26)}`;
+                    if (f0El) f0El.innerText = `F0: ~${profile.f0Hz} Hz`;
+                    if (regEl) regEl.innerText = profile.registerLabel || (profile.gender === 'MALE' ? 'Pria Baritone' : 'Wanita Alto');
+                    if (timEl) timEl.innerText = profile.timbreLabel || 'Jernih & Tegas';
+                    if (pitEl) pitEl.innerText = `${Number(profile.clonedPitch || 1).toFixed(2)}x`;
+                    if (ratEl) ratEl.innerText = `${Number(profile.clonedRate || 0.95).toFixed(2)}x`;
+                    if (rawBtn) rawBtn.classList.toggle('hidden', !voiceData);
+                } else {
+                    card.classList.add('hidden');
+                }
+            }
         }
 
-        function handleCustomAudioUpload(input, kind) {
+        function computeMedianNumber(arr) {
+            if (!arr || arr.length === 0) return 0;
+            const s = [...arr].sort((a, b) => a - b);
+            const mid = Math.floor(s.length / 2);
+            return s.length % 2 !== 0 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+        }
+
+        function estimateFramePitchAutocorr(frame, sampleRate) {
+            const n = frame.length;
+            let rms = 0;
+            for (let i = 0; i < n; i++) rms += frame[i] * frame[i];
+            rms = Math.sqrt(rms / n);
+            if (rms < 0.012) return null;
+
+            const minLag = Math.floor(sampleRate / 340);
+            const maxLag = Math.min(Math.floor(sampleRate / 68), Math.floor(n / 2));
+            if (maxLag <= minLag) return null;
+
+            let zeroCrossings = 0;
+            for (let i = 1; i < n; i++) {
+                if ((frame[i - 1] >= 0 && frame[i] < 0) || (frame[i - 1] < 0 && frame[i] >= 0)) zeroCrossings++;
+            }
+            const zcr = zeroCrossings / n;
+            if (zcr > 0.24) return null;
+
+            let bestLag = -1;
+            let bestCorr = 0;
+            for (let lag = minLag; lag <= maxLag; lag++) {
+                let sum = 0;
+                let normA = 0;
+                let normB = 0;
+                const limit = n - lag;
+                for (let i = 0; i < limit; i++) {
+                    const a = frame[i];
+                    const b = frame[i + lag];
+                    sum += a * b;
+                    normA += a * a;
+                    normB += b * b;
+                }
+                const denom = Math.sqrt(normA * normB);
+                const corr = denom > 0 ? (sum / denom) : 0;
+                if (corr > bestCorr) {
+                    bestCorr = corr;
+                    bestLag = lag;
+                }
+            }
+
+            if (bestCorr < 0.36 || bestLag <= 0) return null;
+            return {
+                f0: sampleRate / bestLag,
+                rms,
+                zcr,
+                clarity: bestCorr
+            };
+        }
+
+        async function analyzeUploadedVoiceSample(arrayBuffer, fileName) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) {
+                throw new Error('Browser tidak mendukung Web Audio API untuk analisis suara.');
+            }
+            const ctx = new AudioCtx();
+            try {
+                const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+                const sampleRate = audioBuffer.sampleRate;
+                const rawChannel = audioBuffer.getChannelData(0);
+                const maxSamples = Math.min(rawChannel.length, sampleRate * 25);
+                const samples = rawChannel.subarray(0, maxSamples);
+
+                const frameSize = Math.floor(sampleRate * 0.035);
+                const hopSize = Math.floor(sampleRate * 0.018);
+                const f0Values = [];
+                const zcrValues = [];
+                const frameEnergies = [];
+
+                for (let start = 0; start + frameSize < samples.length; start += hopSize) {
+                    const frame = samples.subarray(start, start + frameSize);
+                    let e = 0;
+                    for (let i = 0; i < frame.length; i++) e += frame[i] * frame[i];
+                    frameEnergies.push(Math.sqrt(e / frame.length));
+
+                    const est = estimateFramePitchAutocorr(frame, sampleRate);
+                    if (est && est.f0 >= 70 && est.f0 <= 335) {
+                        f0Values.push(est.f0);
+                        zcrValues.push(est.zcr);
+                    }
+                }
+
+                const peakEnergy = frameEnergies.reduce((m, v) => v > m ? v : m, 0.001);
+                const activeThreshold = peakEnergy * 0.22;
+                let syllablePeaks = 0;
+                let activeFrames = 0;
+                let inSyllable = false;
+                let cooldownFrames = 0;
+                for (let i = 0; i < frameEnergies.length; i++) {
+                    const en = frameEnergies[i];
+                    if (en > peakEnergy * 0.08) activeFrames++;
+                    if (cooldownFrames > 0) cooldownFrames--;
+                    if (!inSyllable && en > activeThreshold && cooldownFrames === 0) {
+                        inSyllable = true;
+                        syllablePeaks++;
+                        cooldownFrames = 6;
+                    } else if (inSyllable && en < activeThreshold * 0.62) {
+                        inSyllable = false;
+                    }
+                }
+                const activeDurationSec = Math.max(0.8, (activeFrames * hopSize) / sampleRate);
+                const syllablesPerSec = syllablePeaks / activeDurationSec;
+
+                const medianF0 = f0Values.length >= 4 ? Math.round(computeMedianNumber(f0Values)) : 128;
+                const medianZcr = zcrValues.length >= 4 ? computeMedianNumber(zcrValues) : 0.08;
+
+                const detectedGender = medianF0 < 168 ? 'MALE' : 'FEMALE';
+                let registerLabel = 'Pria Baritone';
+                if (medianF0 < 118) registerLabel = 'Pria Bass / Berat';
+                else if (medianF0 < 145) registerLabel = 'Pria Baritone';
+                else if (medianF0 < 168) registerLabel = 'Pria Tenor';
+                else if (medianF0 < 210) registerLabel = 'Wanita Alto / Tegas';
+                else registerLabel = 'Wanita Soprano';
+
+                let timbreLabel = 'Jernih & Tegas';
+                if (medianZcr < 0.068) timbreLabel = 'Hangat & Tebal';
+                else if (medianZcr > 0.115) timbreLabel = 'Cerah & Energik';
+
+                const voices = ('speechSynthesis' in window) ? (window.speechSynthesis.getVoices() || []) : [];
+                const idVoices = voices.filter(v => /^(id|ms)/i.test(v.lang));
+                const matchedGenderVoice = idVoices.find(v => detectVoiceGenderTag(v.name) === detectedGender)
+                    || voices.find(v => detectVoiceGenderTag(v.name) === detectedGender)
+                    || idVoices[0]
+                    || voices[0]
+                    || null;
+
+                const matchedVoiceIsMale = matchedGenderVoice ? (detectVoiceGenderTag(matchedGenderVoice.name) === 'MALE') : false;
+
+                let clonedPitch = 0.86;
+                if (detectedGender === 'MALE') {
+                    if (matchedVoiceIsMale) {
+                        clonedPitch = Math.max(0.66, Math.min(1.18, Number((medianF0 / 122).toFixed(2))));
+                    } else {
+                        const norm = (medianF0 - 75) / (165 - 75);
+                        clonedPitch = Number((0.64 + Math.max(0, Math.min(1, norm)) * 0.22).toFixed(2));
+                    }
+                } else {
+                    clonedPitch = Math.max(0.88, Math.min(1.26, Number((medianF0 / 205).toFixed(2))));
+                }
+
+                const rawRate = 0.95 * (syllablesPerSec / 4.2);
+                const clonedRate = Math.max(0.80, Math.min(1.16, Number(rawRate.toFixed(2))));
+
+                return {
+                    fileName: fileName || 'sample-suara.mp3',
+                    f0Hz: medianF0,
+                    gender: detectedGender,
+                    registerLabel,
+                    timbreLabel,
+                    clonedPitch,
+                    clonedRate,
+                    matchedVoiceName: matchedGenderVoice ? matchedGenderVoice.name : '',
+                    analyzedAt: new Date().toISOString()
+                };
+            } finally {
+                try { await ctx.close(); } catch (e) {}
+            }
+        }
+
+        function applyClonedVoiceProfileToSettings(profile) {
+            if (!profile) return;
+            tournamentMeta.customVoiceProfile = profile;
+            tournamentMeta.ttsVoiceMode = 'CLONE_TONE';
+            tournamentMeta.ttsGender = profile.gender || 'AUTO';
+            tournamentMeta.ttsPitch = Number(profile.clonedPitch) || 0.85;
+            tournamentMeta.ttsRate = Number(profile.clonedRate) || 0.95;
+            if (profile.matchedVoiceName) {
+                tournamentMeta.ttsVoiceName = profile.matchedVoiceName;
+            }
+
+            const vModeSel = document.getElementById('setTtsVoiceMode');
+            if (vModeSel) vModeSel.value = 'CLONE_TONE';
+            const genderSel = document.getElementById('setTtsGender');
+            if (genderSel) genderSel.value = tournamentMeta.ttsGender;
+            const vNameSel = document.getElementById('setTtsVoiceName');
+            if (vNameSel && profile.matchedVoiceName) vNameSel.value = profile.matchedVoiceName;
+
+            const pitchEl = document.getElementById('setTtsPitch');
+            const pitchLbl = document.getElementById('ttsPitchLabel');
+            if (pitchEl) pitchEl.value = tournamentMeta.ttsPitch;
+            if (pitchLbl) pitchLbl.innerText = Number(tournamentMeta.ttsPitch).toFixed(2) + 'x';
+
+            const rateEl = document.getElementById('setTtsRate');
+            const rateLbl = document.getElementById('ttsRateLabel');
+            if (rateEl) rateEl.value = tournamentMeta.ttsRate;
+            if (rateLbl) rateLbl.innerText = Number(tournamentMeta.ttsRate).toFixed(2) + 'x';
+
+            saveAllToStorage();
+            refreshCustomAudioLabels();
+        }
+
+        function reapplyClonedToneProfile() {
+            if (!tournamentMeta.customVoiceProfile) return;
+            applyClonedVoiceProfileToSettings(tournamentMeta.customVoiceProfile);
+            syncLiveStateToSheets();
+            testTtsAnnouncement();
+        }
+
+        async function playRawUploadedVoiceSample() {
+            const voiceData = runtimeUploadedVoiceDataUrl || safeGetLocal(CUSTOM_VOICE_STORAGE_KEY, '');
+            if (!voiceData) return alert('Sample audio tidak tersimpan di cache browser saat ini, namun profil Clone Tone tetap aktif.');
+            stopActiveArenaAudio();
+            await playUploadedAudioWithPitchAndTempo(voiceData);
+        }
+
+        async function handleCustomAudioUpload(input, kind) {
             const file = input.files && input.files[0];
             if (!file) return;
-            if (file.size > 4.5 * 1024 * 1024) {
-                alert('Ukuran file audio terlalu besar (maksimal 4,5 MB). Silakan pilih file yang lebih ringkas.');
+            const maxLimit = kind === 'chime' ? 4.5 * 1024 * 1024 : 10 * 1024 * 1024;
+            if (file.size > maxLimit) {
+                alert(`Ukuran file audio terlalu besar (maksimal ${kind === 'chime' ? '4,5' : '10'} MB). Silakan pilih file yang lebih ringkas.`);
                 input.value = '';
                 return;
             }
             const key = kind === 'chime' ? CUSTOM_CHIME_STORAGE_KEY : CUSTOM_VOICE_STORAGE_KEY;
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                try {
-                    localStorage.setItem(key, ev.target.result);
-                    localStorage.setItem(key + '_name', file.name);
-                } catch (err) {
-                    alert('Penyimpanan browser penuh untuk menyimpan file audio ini.');
-                    return;
-                }
-                if (kind === 'chime') {
+
+            if (kind === 'chime') {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        localStorage.setItem(key, ev.target.result);
+                        localStorage.setItem(key + '_name', file.name);
+                    } catch (err) {
+                        alert('Penyimpanan browser penuh untuk menyimpan file chime ini.');
+                        return;
+                    }
                     tournamentMeta.ttsChimePreset = 'CUSTOM';
                     const sel = document.getElementById('setTtsChimePreset');
                     if (sel) sel.value = 'CUSTOM';
-                } else {
-                    tournamentMeta.ttsVoiceMode = 'STATIC_AUDIO';
-                    const sel = document.getElementById('setTtsVoiceMode');
-                    if (sel) sel.value = 'STATIC_AUDIO';
-                }
-                saveAllToStorage();
+                    saveAllToStorage();
+                    refreshCustomAudioLabels();
+                    input.value = '';
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            const voiceLbl = document.getElementById('customVoiceFileName');
+            if (voiceLbl) voiceLbl.innerText = 'Menganalisis tone suara...';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const profile = await analyzeUploadedVoiceSample(arrayBuffer, file.name);
+
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    runtimeUploadedVoiceDataUrl = ev.target.result;
+                    try {
+                        localStorage.setItem(key, ev.target.result);
+                        localStorage.setItem(key + '_name', file.name);
+                    } catch (storageErr) {
+                        try {
+                            localStorage.removeItem(key);
+                            localStorage.setItem(key + '_name', file.name);
+                        } catch (e2) {}
+                    }
+                    applyClonedVoiceProfileToSettings(profile);
+                    syncLiveStateToSheets();
+                    input.value = '';
+                    testTtsAnnouncement();
+                };
+                reader.readAsDataURL(file);
+            } catch (err) {
+                console.error(err);
+                alert('Gagal membaca format audio tersebut. Pastikan file berupa rekaman/audio valid (.mp3, .wav, .m4a, atau .ogg).');
                 refreshCustomAudioLabels();
                 input.value = '';
-            };
-            reader.readAsDataURL(file);
+            }
         }
 
         function clearCustomAudio(kind) {
@@ -4182,6 +4710,7 @@
                 if (sel) sel.value = 'DING_DONG';
             }
             if (kind === 'voice') {
+                runtimeUploadedVoiceDataUrl = null;
                 tournamentMeta.customVoiceProfile = null;
                 if (tournamentMeta.ttsVoiceMode !== 'TTS') {
                     tournamentMeta.ttsVoiceMode = 'TTS';
@@ -4225,6 +4754,7 @@
             if (pitchLbl) pitchLbl.innerText = defaultPitch.toFixed(2) + 'x';
             if (rateEl) rateEl.value = defaultRate;
             if (rateLbl) rateLbl.innerText = defaultRate + 'x';
+            applyRealtimePitchAndTempoToActiveAudio();
             saveAllToStorage();
         }
 
@@ -4272,6 +4802,8 @@
             const tplEl = document.getElementById('setTtsTemplate');
             if (tplEl) tournamentMeta.ttsTemplate = tplEl.value;
 
+            // Update active uploaded audio playback pitch & tempo in real time
+            applyRealtimePitchAndTempoToActiveAudio();
             saveAllToStorage();
         }
 
@@ -4282,16 +4814,7 @@
             if (preset === 'CUSTOM') {
                 const customData = safeGetLocal(CUSTOM_CHIME_STORAGE_KEY, '');
                 if (customData) {
-                    return new Promise((resolve) => {
-                        try {
-                            if (activeArenaAudioPlayer) { activeArenaAudioPlayer.pause(); activeArenaAudioPlayer = null; }
-                            const audio = new Audio(customData);
-                            activeArenaAudioPlayer = audio;
-                            audio.onended = () => resolve();
-                            audio.onerror = () => resolve();
-                            audio.play().catch(() => resolve());
-                        } catch (e) { resolve(); }
-                    });
+                    return playUploadedAudioWithPitchAndTempo(customData, false).then(() => {});
                 }
             }
 
@@ -4353,10 +4876,8 @@
             const isEnglishAccent = /^en/i.test(String(langCode || ''));
             let processed = String(rawText);
 
-            // 1. Kelompok Umur: U15, U17, U-15, U-17 -> U 15, U 17
             processed = processed.replace(/\bU[-\s]?(\d{1,2})\b/gi, 'U $1');
 
-            // 2. Singkatan Kategori Utama (MS, WS, MD, WD, XD, OPEN)
             const categoryMap = {
                 MS: 'Tunggal Putra',
                 WS: 'Tunggal Putri',
@@ -4365,20 +4886,18 @@
                 XD: 'Ganda Campuran'
             };
             Object.keys(categoryMap).forEach(abbr => {
-                const rx = new RegExp(`\\b${abbr}\\b`, 'g');
+                const rx = new RegExp(`\b${abbr}\b`, 'g');
                 processed = processed.replace(rx, categoryMap[abbr]);
             });
 
             processed = processed.replace(/\b(?:KELAS\s+)*OPEN\b/gi, 'Kelas Open');
 
-            // 3. Singkatan Kelas Huruf Ganda (CD, EE, FF, BB, dll)
             processed = processed.replace(/\b(?:KELAS\s+)*(AA|BB|CC|DD|EE|FF|GG|HH|AB|BC|CD|DE|EF|FG|GH)\b/g, (_, code) => {
                 const upper = code.toUpperCase();
                 if (isEnglishAccent && upper === 'AA') return 'Kelas A, A';
                 return 'Kelas ' + upper.split('').join(' ');
             });
 
-            // 4. Normalisasi kata kapital umum & akronim turnamen
             processed = processed
                 .replace(/\bGANDA\b/g, 'Ganda')
                 .replace(/\bTUNGGAL\b/g, 'Tunggal')
@@ -4394,34 +4913,42 @@
 
         function resolveArenaVoiceAndTone() {
             const voices = ('speechSynthesis' in window) ? (window.speechSynthesis.getVoices() || []) : [];
-            const chosenName = tournamentMeta.ttsVoiceName || '';
-            const desiredGender = tournamentMeta.ttsGender || 'AUTO';
+            const isCloneMode = (tournamentMeta.ttsVoiceMode === 'CLONE_TONE' && tournamentMeta.customVoiceProfile);
+            const cloneProf = isCloneMode ? tournamentMeta.customVoiceProfile : null;
+
+            const chosenName = tournamentMeta.ttsVoiceName || (cloneProf ? cloneProf.matchedVoiceName : '') || '';
+            const desiredGender = (cloneProf && tournamentMeta.ttsGender === 'AUTO')
+                ? cloneProf.gender
+                : (tournamentMeta.ttsGender || (cloneProf ? cloneProf.gender : 'AUTO'));
 
             let matchedVoice = chosenName ? voices.find(v => v.name === chosenName) : null;
 
             const idVoices = voices.filter(v => /^(id|ms)/i.test(v.lang));
+            const andikaVoice = idVoices.find(v => /andika/i.test(v.name)) || voices.find(v => /andika/i.test(v.name));
             const idMaleVoices = idVoices.filter(v => detectVoiceGenderTag(v.name) === 'MALE');
             const idFemaleVoices = idVoices.filter(v => detectVoiceGenderTag(v.name) === 'FEMALE');
             const allMaleVoices = voices.filter(v => detectVoiceGenderTag(v.name) === 'MALE');
 
             if (!matchedVoice) {
                 if (desiredGender === 'MALE') {
-                    matchedVoice = idMaleVoices[0] || allMaleVoices[0] || idVoices[0] || voices[0] || null;
+                    matchedVoice = andikaVoice || idMaleVoices[0] || allMaleVoices[0] || idVoices[0] || voices[0] || null;
                 } else if (desiredGender === 'FEMALE') {
                     matchedVoice = idFemaleVoices[0] || idVoices[0] || voices.find(v => detectVoiceGenderTag(v.name) === 'FEMALE') || voices[0] || null;
                 } else {
-                    matchedVoice = idVoices[0] || voices[0] || null;
+                    matchedVoice = andikaVoice || idMaleVoices[0] || idVoices[0] || voices[0] || null;
                 }
             }
 
             const effectiveLang = matchedVoice ? matchedVoice.lang : 'id-ID';
-            const effectivePitch = Number(tournamentMeta.ttsPitch) || (desiredGender === 'MALE' ? 0.85 : 1.0);
+            const { pitch: activePitch, rate: activeRate } = getActivePitchAndTempoValues();
+            const effectivePitch = activePitch || (cloneProf ? Number(cloneProf.clonedPitch) : (desiredGender === 'MALE' ? 0.85 : 1.0));
+            const effectiveRate = activeRate || (cloneProf ? Number(cloneProf.clonedRate) : 0.95);
 
             return {
                 voice: matchedVoice,
                 lang: effectiveLang,
                 pitch: Math.max(0.55, Math.min(1.35, effectivePitch)),
-                rate: Number(tournamentMeta.ttsRate) || 0.95
+                rate: Math.max(0.70, Math.min(1.30, effectiveRate))
             };
         }
 
@@ -4429,9 +4956,12 @@
             const tpl = (tournamentMeta.ttsTemplate && tournamentMeta.ttsTemplate.trim())
                 ? tournamentMeta.ttsTemplate
                 : DEFAULT_TTS_TEMPLATE;
+            const matchNumberVal = String(vars.nomor ?? vars.no_partai ?? vars.partai ?? '').trim();
             return tpl
                 .replace(/\{kelas\}/gi, vars.kelas || '')
-                .replace(/\{partai\}/gi, vars.partai || '')
+                .replace(/\{nomor\}/gi, matchNumberVal)
+                .replace(/\{no_partai\}/gi, matchNumberVal)
+                .replace(/\{partai\}/gi, matchNumberVal)
                 .replace(/\{lapangan\}/gi, vars.lapangan || '')
                 .replace(/\{pemain1\}/gi, vars.pemain1 || 'Tim Satu')
                 .replace(/\{pemain2\}/gi, vars.pemain2 || 'Tim Dua');
@@ -4457,23 +4987,19 @@
 
         async function speakArenaCall(text, forcePlay = false) {
             if (!forcePlay && tournamentMeta.ttsEnabled === false) return;
-            try {
-                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-                if (activeArenaAudioPlayer) { activeArenaAudioPlayer.pause(); activeArenaAudioPlayer = null; }
-            } catch (e) {}
+            stopActiveArenaAudio();
 
             await playOpeningChime();
 
             const voiceMode = tournamentMeta.ttsVoiceMode || 'TTS';
-            if (voiceMode === 'STATIC_AUDIO' || voiceMode === 'CUSTOM_AUDIO') {
-                const customVoice = safeGetLocal(CUSTOM_VOICE_STORAGE_KEY, '');
+            const customVoice = runtimeUploadedVoiceDataUrl || safeGetLocal(CUSTOM_VOICE_STORAGE_KEY, '');
+
+            if (voiceMode === 'INTRO_PLUS_TTS' && customVoice) {
+                await playUploadedAudioWithPitchAndTempo(customVoice, false);
+            } else if (voiceMode === 'STATIC_AUDIO' || voiceMode === 'CUSTOM_AUDIO') {
                 if (customVoice) {
-                    try {
-                        const audio = new Audio(customVoice);
-                        activeArenaAudioPlayer = audio;
-                        await audio.play();
-                        return;
-                    } catch (e) {}
+                    const ok = await playUploadedAudioWithPitchAndTempo(customVoice, false);
+                    if (ok) return;
                 }
             }
 
@@ -4489,19 +5015,39 @@
             if (!match || tournamentMeta.ttsEnabled === false) return;
             const p1 = (match.player1?.name || 'Tim Satu').replace(/\+/g, ' dan ');
             const p2 = (match.player2?.name || 'Tim Dua').replace(/\+/g, ' dan ');
+            const nrStr = String(match.nr || '');
             const msg = formatArenaCallMessage({
                 kelas: cls,
-                partai: String(match.nr || ''),
+                nomor: nrStr,
+                no_partai: nrStr,
+                partai: nrStr,
                 lapangan: String(courtNum || ''),
                 pemain1: p1,
                 pemain2: p2
             });
+            const { pitch, rate } = getActivePitchAndTempoValues();
+            tournamentMeta.lastArenaCall = {
+                id: 'CALL-' + Date.now(),
+                court: Number(courtNum) || 0,
+                status: 'LIVE',
+                className: cls,
+                matchNr: '#' + String(match.nr || ''),
+                text: msg,
+                pitch,
+                rate,
+                voiceMode: tournamentMeta.ttsVoiceMode || 'TTS',
+                calledAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            };
+            saveAllToStorage();
             speakArenaCall(msg, false);
         }
 
         function testTtsAnnouncement() {
+            updateTtsSettings();
             const sampleText = formatArenaCallMessage({
                 kelas: activeCategory || 'MD U15',
+                nomor: '1',
+                no_partai: '1',
                 partai: '1',
                 lapangan: '1',
                 pemain1: 'Kevin Sanjaya dan Marcus Gideon',
@@ -4643,7 +5189,6 @@
                 window.enhanceAllSatsetSelects(modal);
             }
 
-            // Jika belum ada partai di Live Court dan tidak ada preselect, otomatis buka tab Panggil ke Lapangan Manual agar langsung siap pakai
             if (!preselectKey && callAthleteOptionsList.length === 0) {
                 switchCallAthleteTab('manual');
             } else {
@@ -4668,6 +5213,8 @@
             if (!chosen) {
                 previewEl.value = formatArenaCallMessage({
                     kelas: activeCategory,
+                    nomor: '1',
+                    no_partai: '1',
                     partai: '1',
                     lapangan: '1',
                     pemain1: 'Tim Satu',
@@ -4684,9 +5231,12 @@
                     : `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-extrabold">COURT ${chosen.court} • PENDING / SIAP-SIAP</span>`;
             }
 
+            const chosenNr = String(chosen.nr || '');
             previewEl.value = formatArenaCallMessage({
                 kelas: chosen.cls,
-                partai: String(chosen.nr),
+                nomor: chosenNr,
+                no_partai: chosenNr,
+                partai: chosenNr,
                 lapangan: String(chosen.court),
                 pemain1: chosen.p1.replace(/\+/g, ' dan '),
                 pemain2: chosen.p2.replace(/\+/g, ' dan ')
@@ -4709,6 +5259,8 @@
             if (previewEl) {
                 previewEl.value = formatArenaCallMessage({
                     kelas: clsName,
+                    nomor: matchNr,
+                    no_partai: matchNr,
                     partai: matchNr,
                     lapangan: courtNum,
                     pemain1: p1,
@@ -4772,6 +5324,9 @@
             const textToSpeak = (previewEl ? previewEl.value.trim() : '');
             if (!textToSpeak) return alert('Teks panggilan tidak boleh kosong!');
 
+            updateTtsSettings();
+            const { pitch, rate } = getActivePitchAndTempoValues();
+
             let callMeta = {
                 id: 'CALL-' + Date.now(),
                 court: 0,
@@ -4779,6 +5334,9 @@
                 className: activeCategory,
                 matchNr: '-',
                 text: textToSpeak,
+                pitch,
+                rate,
+                voiceMode: tournamentMeta.ttsVoiceMode || 'TTS',
                 calledAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
             };
 
@@ -4816,9 +5374,14 @@
                 openCallAthleteModal();
                 return;
             }
+            updateTtsSettings();
+            const { pitch, rate } = getActivePitchAndTempoValues();
+            const quickNr = String(chosen.nr || '');
             const msg = formatArenaCallMessage({
                 kelas: chosen.cls,
-                partai: String(chosen.nr),
+                nomor: quickNr,
+                no_partai: quickNr,
+                partai: quickNr,
                 lapangan: String(chosen.court),
                 pemain1: chosen.p1.replace(/\+/g, ' dan '),
                 pemain2: chosen.p2.replace(/\+/g, ' dan ')
@@ -4830,6 +5393,9 @@
                 className: chosen.cls,
                 matchNr: '#' + chosen.nr,
                 text: msg,
+                pitch,
+                rate,
+                voiceMode: tournamentMeta.ttsVoiceMode || 'TTS',
                 calledAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
             };
             saveAllToStorage();

@@ -1,8 +1,15 @@
 /**
- * SATSET TECH - Badminton Tournament Manager Backend (Code.gs v10.3)
- * Kompatibel dengan index.html (Admin), public-viewer.html (Public Viewer + Registrasi + Hasil), & promotion.html
- * Update v10.1: Penyimpanan dedicated sheet _BRANDING untuk mencegah error limit 50.000 karakter sel Google Sheets
- * saat upload Favicon (icon.png), OG Banner (og-banner.png), Logo, & Watermark.
+ * SATSET TECH - Badminton Tournament Manager Backend (Code.gs v10.4)
+ * Kompatibel penuh dengan:
+ * - index.html (Admin Control Panel)
+ * - public-viewer.html (Public Viewer, GOR TV Display, Registrasi Online, & Hasil)
+ * - promotion.html (Landing Page Promosi SATSET TECH)
+ *
+ * Update v10.4:
+ * 1. Auto-Chunking Multi-Row pada _BRANDING & _SPONSORS: Mencegah pemotongan base64 (>50.000 karakter)
+ *    sehingga upload Favicon (icon.png), OG Banner (og-banner.png), Logo, & Watermark resolusi tinggi tetap utuh 100%.
+ * 2. Sinkronisasi penuh OOP Date & OOP Time (oopDate & oopTime) pada partai live maupun partai pending.
+ * 3. Dukungan promotionUrl & mode query ringan (?mode=branding) untuk pemuatan cepat di promotion.html.
  */
 
 const CONFIG_SHEET = '_CONFIG';
@@ -16,6 +23,7 @@ const BRANDING_SHEET = '_BRANDING';
 const DEFAULT_USER = 'admin';
 const DEFAULT_PASS = 'admin2026';
 const DEFAULT_PIN  = '123456';
+const CHUNK_SIZE   = 48000;
 
 function initAuthProps() {
   const props = PropertiesService.getScriptProperties();
@@ -28,10 +36,34 @@ function doGet(e) {
   initAuthProps();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const meta = getConfigMeta(ss);
+  const mode = (e && e.parameter && e.parameter.mode) ? String(e.parameter.mode).toLowerCase() : 'full';
+
+  // Mode ringan khusus untuk promotion.html / sinkronisasi favicon & OG banner cepat
+  if (mode === 'branding') {
+    return jsonResponse({
+      status: 'ok',
+      eventName: meta.eventName,
+      venueLocation: (meta.venueList && meta.venueList[0]) || meta.venueLocation,
+      city: meta.city,
+      dateRange: meta.dateRange,
+      regOpen: meta.regOpen,
+      maintenanceMode: Boolean(meta.maintenanceMode),
+      adminContacts: meta.adminContacts,
+      themeConfig: meta.themeConfig,
+      brandingConfig: meta.brandingConfig,
+      sponsorsList: meta.sponsorsList,
+      handbookUrl: meta.handbookUrl,
+      promotionUrl: meta.promotionUrl,
+      agencyConfig: meta.agencyConfig,
+      sponsorDisplayMode: meta.sponsorDisplayMode || 'AUTO',
+      sponsorSpeed: Number(meta.sponsorSpeed) || 24
+    });
+  }
+
   const sheets = ss.getSheets();
   const sheetClasses = [];
   const participants = {};
-  
+
   sheets.forEach(sheet => {
     const name = sheet.getName();
     if (!name.startsWith('_') && name.toLowerCase() !== 'sheet1') {
@@ -81,7 +113,13 @@ function doGet(e) {
     cRows.forEach(r => {
       let pendingObj = null;
       if (r[7]) {
-        try { pendingObj = JSON.parse(String(r[7])); } catch (err) {}
+        try {
+          pendingObj = JSON.parse(String(r[7]));
+          if (pendingObj && typeof pendingObj === 'object') {
+            pendingObj.oopDate = String(pendingObj.oopDate || '');
+            pendingObj.oopTime = String(pendingObj.oopTime || '');
+          }
+        } catch (err) {}
       }
       courts.push({
         court: r[0],
@@ -184,6 +222,7 @@ function doGet(e) {
     announcementText: meta.announcementText,
     waPromoTemplate: meta.waPromoTemplate,
     handbookUrl: meta.handbookUrl,
+    promotionUrl: meta.promotionUrl,
     agencyConfig: meta.agencyConfig,
     regFieldsConfig: meta.regFieldsConfig,
     sponsorDisplayMode: meta.sponsorDisplayMode || 'AUTO',
@@ -237,7 +276,7 @@ function doPost(e) {
       sheet.clear();
       sheet.appendRow(['ID Pasangan', 'Pemain 1', 'Pemain 2', 'Nama Pasangan', 'Klub / PB', 'Tipe', 'Seed', 'Kehadiran', 'Jam Check-In', 'No WhatsApp', 'Foto Peserta']);
       sheet.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#ccff00');
-      
+
       if (list.length > 0) {
         const rows = list.map(p => [
           p.id || '', p.player1 || '', p.player2 || '', p.name || '', p.club || '', p.pairType || 'MD', p.seed || '',
@@ -273,6 +312,7 @@ function doPost(e) {
         announcementText: payload.announcementText !== undefined ? payload.announcementText : undefined,
         waPromoTemplate: payload.waPromoTemplate !== undefined ? payload.waPromoTemplate : undefined,
         handbookUrl: payload.handbookUrl !== undefined ? payload.handbookUrl : undefined,
+        promotionUrl: payload.promotionUrl !== undefined ? payload.promotionUrl : undefined,
         agencyConfig: payload.agencyConfig !== undefined ? payload.agencyConfig : undefined,
         regFieldsConfig: payload.regFieldsConfig !== undefined ? payload.regFieldsConfig : undefined,
         sponsorDisplayMode: payload.sponsorDisplayMode !== undefined ? payload.sponsorDisplayMode : undefined,
@@ -292,10 +332,29 @@ function doPost(e) {
 
       const courts = payload.courts || [];
       if (courts.length > 0) {
-        const cRows = courts.map(c => [
-          c.court, c.status || 'STANDBY', c.className || '-', c.matchNr || '-', c.team1 || '-', c.team2 || '-', c.score || '-',
-          c.pending ? JSON.stringify(c.pending) : '', c.venue || '', c.oopDate || '', c.oopTime || ''
-        ]);
+        const cRows = courts.map(c => {
+          let pendingSerialized = '';
+          if (c.pending && typeof c.pending === 'object') {
+            const cleanPending = Object.assign({}, c.pending, {
+              oopDate: String(c.pending.oopDate || ''),
+              oopTime: String(c.pending.oopTime || '')
+            });
+            pendingSerialized = JSON.stringify(cleanPending);
+          }
+          return [
+            c.court,
+            c.status || 'STANDBY',
+            c.className || '-',
+            c.matchNr || '-',
+            c.team1 || '-',
+            c.team2 || '-',
+            c.score || '-',
+            pendingSerialized,
+            c.venue || '',
+            String(c.oopDate || ''),
+            String(c.oopTime || '')
+          ];
+        });
         liveSheet.getRange(2, 1, cRows.length, 11).setValues(cRows);
       }
 
@@ -431,6 +490,7 @@ function getConfigMeta(ss) {
     announcementText: '',
     waPromoTemplate: '',
     handbookUrl: '',
+    promotionUrl: '',
     agencyConfig: null,
     regFieldsConfig: null,
     sponsorDisplayMode: 'AUTO',
@@ -440,6 +500,7 @@ function getConfigMeta(ss) {
     refereeName: '',
     pdfFooterNote: ''
   };
+
   if (sheet && sheet.getLastRow() > 1) {
     const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
     rows.forEach(r => {
@@ -465,6 +526,7 @@ function getConfigMeta(ss) {
       if (r[0] === 'announcementText') meta.announcementText = String(r[1] || '');
       if (r[0] === 'waPromoTemplate') meta.waPromoTemplate = String(r[1] || '');
       if (r[0] === 'handbookUrl') meta.handbookUrl = String(r[1] || '');
+      if (r[0] === 'promotionUrl') meta.promotionUrl = String(r[1] || '');
       if (r[0] === 'agencyConfig' && r[1]) { try { meta.agencyConfig = JSON.parse(r[1]); } catch (e) {} }
       if (r[0] === 'regFieldsConfig' && r[1]) { try { meta.regFieldsConfig = JSON.parse(r[1]); } catch (e) {} }
       if (r[0] === 'sponsorDisplayMode' && r[1]) meta.sponsorDisplayMode = String(r[1]);
@@ -482,39 +544,91 @@ function getConfigMeta(ss) {
     });
   }
 
-  // Load dedicated _BRANDING sheet (supports large base64 icon.png, og-banner.png, logoData, watermarkData per row)
+  // Load dedicated _BRANDING sheet with multi-row chunk reconstruction (supports large icon.png, og-banner.png, logoData, watermarkData)
   const brSheet = ss.getSheetByName(BRANDING_SHEET);
   if (brSheet && brSheet.getLastRow() > 1) {
     const brRows = brSheet.getRange(2, 1, brSheet.getLastRow() - 1, 2).getValues();
     const loadedBranding = meta.brandingConfig && typeof meta.brandingConfig === 'object' ? Object.assign({}, meta.brandingConfig) : {};
+    const chunkedMap = {};
+
     brRows.forEach(br => {
       const k = String(br[0] || '');
       const v = br[1];
       if (!k) return;
+
+      const partMatch = k.match(/^(.+)__part(\d+)$/);
+      if (partMatch) {
+        const baseKey = partMatch[1];
+        const partIdx = Number(partMatch[2]);
+        if (!chunkedMap[baseKey]) chunkedMap[baseKey] = [];
+        chunkedMap[baseKey][partIdx] = String(v || '');
+        return;
+      }
+
       if (typeof v === 'string' && (v.startsWith('{') || v.startsWith('[') || v === 'true' || v === 'false' || v === 'null')) {
         try { loadedBranding[k] = JSON.parse(v); } catch (e) { loadedBranding[k] = v; }
       } else {
         loadedBranding[k] = v;
       }
     });
+
+    Object.keys(chunkedMap).forEach(baseKey => {
+      const fullStr = chunkedMap[baseKey].join('');
+      if (fullStr.startsWith('{') || fullStr.startsWith('[') || fullStr === 'true' || fullStr === 'false' || fullStr === 'null') {
+        try { loadedBranding[baseKey] = JSON.parse(fullStr); } catch (e) { loadedBranding[baseKey] = fullStr; }
+      } else {
+        loadedBranding[baseKey] = fullStr;
+      }
+    });
+
     meta.brandingConfig = loadedBranding;
   }
 
+  // Load dedicated _SPONSORS sheet with multi-row chunk reconstruction for large sponsor logos
   const spSheet = ss.getSheetByName(SPONSORS_SHEET);
   if (spSheet && spSheet.getLastRow() > 1) {
     const spRows = spSheet.getRange(2, 1, spSheet.getLastRow() - 1, 4).getValues();
-    const loadedSponsors = [];
+    const sponsorMap = {};
+    const sponsorOrder = [];
+
     spRows.forEach(sr => {
-      if (sr[3]) {
+      const idOrIdx = String(sr[0] || '');
+      const name = String(sr[1] || '');
+      const tier = String(sr[2] || '');
+      const logoPart = String(sr[3] || '');
+      if (!logoPart && !name) return;
+
+      const partMatch = idOrIdx.match(/^(.+)__part(\d+)$/);
+      if (partMatch) {
+        const baseId = partMatch[1];
+        const partIdx = Number(partMatch[2]);
+        if (!sponsorMap[baseId]) {
+          sponsorMap[baseId] = { name: name, tier: tier, parts: [] };
+          sponsorOrder.push(baseId);
+        }
+        sponsorMap[baseId].parts[partIdx] = logoPart;
+      } else {
+        const key = idOrIdx || ('row_' + sponsorOrder.length);
+        sponsorMap[key] = { name: name, tier: tier, parts: [logoPart] };
+        sponsorOrder.push(key);
+      }
+    });
+
+    const loadedSponsors = [];
+    sponsorOrder.forEach(key => {
+      const item = sponsorMap[key];
+      const fullLogo = item.parts.join('');
+      if (fullLogo) {
         loadedSponsors.push({
-          name: String(sr[1] || ''),
-          tier: String(sr[2] || ''),
-          logoData: String(sr[3] || '')
+          name: item.name,
+          tier: item.tier,
+          logoData: fullLogo
         });
       }
     });
     meta.sponsorsList = loadedSponsors;
   }
+
   return meta;
 }
 
@@ -523,6 +637,7 @@ function setConfigMeta(ss, meta) {
   const classesToSave = (meta.activeClasses && meta.activeClasses.length > 0) ? meta.activeClasses : existing.activeClasses;
   const venuesToSave = (meta.courtVenues && typeof meta.courtVenues === 'object') ? meta.courtVenues : existing.courtVenues;
   const venueListToSave = (Array.isArray(meta.venueList) && meta.venueList.length > 0) ? meta.venueList : existing.venueList;
+
   let sheet = ss.getSheetByName(CONFIG_SHEET);
   if (!sheet) sheet = ss.insertSheet(CONFIG_SHEET);
   sheet.clear();
@@ -539,46 +654,72 @@ function setConfigMeta(ss, meta) {
   sheet.appendRow(['adminContacts', JSON.stringify(meta.adminContacts || existing.adminContacts || [])]);
   sheet.appendRow(['themeConfig', JSON.stringify(meta.themeConfig !== undefined ? meta.themeConfig : (existing.themeConfig || null))]);
 
-  // Save brandingConfig per-key into dedicated _BRANDING sheet so each asset (favicon, OG banner, logo, watermark) gets its own 50k-char cell budget
+  // Save brandingConfig per-key into dedicated _BRANDING sheet with automatic chunking (>48k chars split across rows)
   const brandingToSave = meta.brandingConfig !== undefined ? meta.brandingConfig : (existing.brandingConfig || null);
   let brSheet = ss.getSheetByName(BRANDING_SHEET);
   if (!brSheet) brSheet = ss.insertSheet(BRANDING_SHEET);
   brSheet.clear();
   brSheet.appendRow(['BrandingKey', 'BrandingValue']);
   brSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#0b0f17').setFontColor('#ccff00');
+
   if (brandingToSave && typeof brandingToSave === 'object') {
     const brKeys = Object.keys(brandingToSave);
-    if (brKeys.length > 0) {
-      const brRows = brKeys.map(k => {
-        const val = brandingToSave[k];
-        const serialized = (val !== null && typeof val === 'object') ? JSON.stringify(val) : (val === undefined ? '' : val);
-        return [k, typeof serialized === 'string' && serialized.length > 49500 ? serialized.slice(0, 49500) : serialized];
-      });
+    const brRows = [];
+    brKeys.forEach(k => {
+      const val = brandingToSave[k];
+      const serialized = (val !== null && typeof val === 'object') ? JSON.stringify(val) : (val === undefined ? '' : val);
+      if (typeof serialized === 'string' && serialized.length > CHUNK_SIZE) {
+        let partIdx = 0;
+        for (let offset = 0; offset < serialized.length; offset += CHUNK_SIZE) {
+          brRows.push([k + '__part' + partIdx, serialized.slice(offset, offset + CHUNK_SIZE)]);
+          partIdx++;
+        }
+      } else {
+        brRows.push([k, serialized]);
+      }
+    });
+    if (brRows.length > 0) {
       brSheet.getRange(2, 1, brRows.length, 2).setValues(brRows);
     }
   }
   sheet.appendRow(['brandingConfig', 'STORED_IN_' + BRANDING_SHEET]);
 
+  // Save sponsorsList into dedicated _SPONSORS sheet with automatic chunking for large sponsor logos
   const sponsorsToSave = meta.sponsorsList !== undefined ? meta.sponsorsList : (existing.sponsorsList || []);
   let spSheet = ss.getSheetByName(SPONSORS_SHEET);
   if (!spSheet) spSheet = ss.insertSheet(SPONSORS_SHEET);
   spSheet.clear();
   spSheet.appendRow(['No', 'Nama Sponsor', 'Kategori / Tier', 'Logo Data']);
   spSheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#0b0f17').setFontColor('#ccff00');
+
   if (Array.isArray(sponsorsToSave) && sponsorsToSave.length > 0) {
-    const spRows = sponsorsToSave.map((sp, i) => [
-      i + 1,
-      String(sp.name || ''),
-      String(sp.tier || ''),
-      String(sp.logoData || '')
-    ]);
-    spSheet.getRange(2, 1, spRows.length, 4).setValues(spRows);
+    const spRows = [];
+    sponsorsToSave.forEach((sp, i) => {
+      const spName = String(sp.name || '');
+      const spTier = String(sp.tier || '');
+      const spLogo = String(sp.logoData || '');
+      const baseId = String(i + 1);
+      if (spLogo.length > CHUNK_SIZE) {
+        let partIdx = 0;
+        for (let offset = 0; offset < spLogo.length; offset += CHUNK_SIZE) {
+          spRows.push([baseId + '__part' + partIdx, spName, spTier, spLogo.slice(offset, offset + CHUNK_SIZE)]);
+          partIdx++;
+        }
+      } else {
+        spRows.push([baseId, spName, spTier, spLogo]);
+      }
+    });
+    if (spRows.length > 0) {
+      spSheet.getRange(2, 1, spRows.length, 4).setValues(spRows);
+    }
   }
   sheet.appendRow(['sponsorsList', 'STORED_IN_' + SPONSORS_SHEET]);
+
   sheet.appendRow(['publicTabsConfig', JSON.stringify(meta.publicTabsConfig !== undefined ? meta.publicTabsConfig : (existing.publicTabsConfig || null))]);
   sheet.appendRow(['announcementText', meta.announcementText !== undefined ? meta.announcementText : (existing.announcementText || '')]);
   sheet.appendRow(['waPromoTemplate', meta.waPromoTemplate !== undefined ? meta.waPromoTemplate : (existing.waPromoTemplate || '')]);
   sheet.appendRow(['handbookUrl', meta.handbookUrl !== undefined ? meta.handbookUrl : (existing.handbookUrl || '')]);
+  sheet.appendRow(['promotionUrl', meta.promotionUrl !== undefined ? meta.promotionUrl : (existing.promotionUrl || '')]);
   sheet.appendRow(['agencyConfig', JSON.stringify(meta.agencyConfig !== undefined ? meta.agencyConfig : (existing.agencyConfig || null))]);
   sheet.appendRow(['regFieldsConfig', JSON.stringify(meta.regFieldsConfig !== undefined ? meta.regFieldsConfig : (existing.regFieldsConfig || null))]);
   sheet.appendRow(['sponsorDisplayMode', meta.sponsorDisplayMode !== undefined ? meta.sponsorDisplayMode : (existing.sponsorDisplayMode || 'AUTO')]);
